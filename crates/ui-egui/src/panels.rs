@@ -606,7 +606,11 @@ pub fn title_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
                 let max = ui.ctx().input(|i| i.viewport().maximized.unwrap_or(false));
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Maximized(!max));
             }
-            let title = app.session.active().map(|d| format!("{}{}", d.doc.name, if d.is_dirty() { "  •" } else { "" })).unwrap_or_else(|| crate::brand::PRODUCT_NAME.into());
+            let title = app
+                .session
+                .active()
+                .map(|d| format!("{}{}", d.doc.name, if d.is_dirty() { "  •" } else { "" }))
+                .unwrap_or_else(|| crate::brand::PRODUCT_NAME.into());
             // The menus and the far-end controls are laid out first; the title is centred in
             // whatever room is left between them (`free`, left to right: menus then controls, or
             // controls then menus in a right-to-left UI), shortened or dropped rather than drawn

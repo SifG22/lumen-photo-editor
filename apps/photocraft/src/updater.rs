@@ -82,7 +82,8 @@ fn check(dir: Option<&Path>) -> Result<(), String> {
     write_state(dir, &state);
 
     let body = curl(&["--max-time", "20", MANIFEST_URL])?;
-    let manifest: Value = serde_json::from_slice(body.strip_prefix([0xEF, 0xBB, 0xBF].as_slice()).unwrap_or(&body)).map_err(|e| format!("bad manifest: {e}"))?;
+    let manifest: Value =
+        serde_json::from_slice(body.strip_prefix([0xEF, 0xBB, 0xBF].as_slice()).unwrap_or(&body)).map_err(|e| format!("bad manifest: {e}"))?;
     let latest = manifest.get("version").and_then(Value::as_str).ok_or("manifest has no version")?;
     if !is_newer(latest, VERSION) || skipped.as_deref() == Some(latest) {
         return Ok(());

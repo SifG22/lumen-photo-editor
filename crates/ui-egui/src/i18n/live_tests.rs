@@ -34,7 +34,8 @@ fn ukrainian_native_app_menu_keeps_product_and_language_names() {
     with_language(Lang::EN, || {
         let h = harness();
         let layout = crate::native_menu::photocraft_layout(&crate::menus::menu_items(h.state()), lang("uk"), "uk");
-        for (id, label) in [("help.about", "Про Lumen Photo Editor"), (crate::native_menu::HIDE, "Приховати Lumen Photo Editor"), ("file.exit", "Вийти з Lumen Photo Editor")]
+        for (id, label) in
+            [("help.about", "Про Lumen Photo Editor"), (crate::native_menu::HIDE, "Приховати Lumen Photo Editor"), ("file.exit", "Вийти з Lumen Photo Editor")]
         {
             assert_eq!(layout.bar.find(id).map(|item| item.label.as_str()), Some(label), "{id}");
         }

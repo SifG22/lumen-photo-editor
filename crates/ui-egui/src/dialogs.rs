@@ -518,7 +518,10 @@ fn about_tab_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, tab: &str) {
             });
         }
         "licenses" => {
-            ui.label(crate::i18n::fmt("{product} está basado en {upstream}, usado bajo la licencia MIT.", &[("product", PRODUCT_NAME), ("upstream", UPSTREAM_NAME)]));
+            ui.label(crate::i18n::fmt(
+                "{product} está basado en {upstream}, usado bajo la licencia MIT.",
+                &[("product", PRODUCT_NAME), ("upstream", UPSTREAM_NAME)],
+            ));
             ui.add_space(6.0);
             egui::ScrollArea::vertical().max_height(260.0).show(ui, |ui| {
                 ui.add(egui::Label::new(egui::RichText::new(crate::brand::LICENSE_TEXT).font(crate::theme::mono(11.0))).selectable(true));

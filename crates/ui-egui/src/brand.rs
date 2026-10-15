@@ -131,7 +131,10 @@ mod tests {
         assert_eq!(tr(Lang::EN, "About PhotoCraft"), "About Lumen Photo Editor");
         assert_eq!(tr(es, "About PhotoCraft"), "Acerca de Lumen Photo Editor");
         assert_eq!(tr_id(Lang::EN, "help.about", "About PhotoCraft"), "About Lumen Photo Editor");
-        assert_eq!(trn(Lang::EN, 2, "{n} step has no PhotoCraft equivalent yet", "{n} steps have no PhotoCraft equivalent yet"), "2 steps have no Lumen Photo Editor equivalent yet");
+        assert_eq!(
+            trn(Lang::EN, 2, "{n} step has no PhotoCraft equivalent yet", "{n} steps have no PhotoCraft equivalent yet"),
+            "2 steps have no Lumen Photo Editor equivalent yet"
+        );
         // Strings that don't name the product are untouched, and the name can still be filled in.
         assert_eq!(tr(Lang::EN, "Layer"), "Layer");
         assert_eq!(rebrand("Lumen is built on PhotoCraft"), "Lumen is built on Lumen Photo Editor");
