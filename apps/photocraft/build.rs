@@ -12,12 +12,12 @@ fn main() {
         return;
     }
     let mut res = winresource::WindowsResource::new();
-    // Lumen 0.0.1 (MAJOR << 48 | MINOR << 32 | PATCH << 16): Lumen's own version, not the workspace's.
-    let lumen_version: u64 = 1 << 16;
+    // Lumen 0.0.2 (MAJOR << 48 | MINOR << 32 | PATCH << 16): Lumen's own version, not the workspace's.
+    let lumen_version: u64 = 2 << 16;
     res.set_version_info(winresource::VersionInfo::FILEVERSION, lumen_version)
         .set_version_info(winresource::VersionInfo::PRODUCTVERSION, lumen_version)
-        .set("FileVersion", "0.0.1")
-        .set("ProductVersion", "0.0.1")
+        .set("FileVersion", "0.0.2")
+        .set("ProductVersion", "0.0.2")
         .set("Comments", "https://sifg.net");
     res.set_icon("../../assets/app-icon/photocraft.ico")
         // Lumen for PC is built on PhotoCraft (MIT OR Apache-2.0); its notice stays here.

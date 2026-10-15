@@ -1362,16 +1362,21 @@ fn theme_swatch(ui: &mut egui::Ui, kind: ThemeKind, id: &str, selected: &mut Str
     }
     let Some(theme) = SavedTheme::parse(id) else { return };
     let favorite = favorites.contains(&theme);
-    let center = rect.right_top() + vec2(-3.0, 3.0);
+    // Lumen: the badge sits inside the swatch's corner, so the next swatch (painted after it)
+    // no longer covers half of it, and the star is painted centred in it (a framed button's
+    // padding pushed it off centre).
+    let center = rect.right_top() + vec2(-BADGE + 1.0, BADGE - 1.0);
     let badge = egui::Rect::from_center_size(center, vec2(BADGE * 2.0, BADGE * 2.0));
-    if !(favorite || ui.rect_contains_pointer(rect.union(badge))) {
+    if !(favorite || ui.rect_contains_pointer(rect)) {
         return;
     }
-    ui.painter().circle(center, BADGE, t.card, egui::Stroke::new(1.0, t.card_border));
-    let (icon, tint) = if favorite { ("star-filled", t.accent) } else { ("star", t.text_dim) };
+    let response = ui.interact(badge, ui.id().with(("theme-favorite", id)), Sense::click());
+    let ring = if response.hovered() { t.text_dim } else { t.card_border };
+    ui.painter().circle(center, BADGE, t.card, egui::Stroke::new(1.0, ring));
+    let (icon, tint) = if favorite { ("star-filled", t.accent) } else { ("star", if response.hovered() { t.text } else { t.text_dim }) };
+    crate::icons::paint(ui, badge, icon, BADGE * 1.3, tint);
     let action = if favorite { tl!("Remove from favorites") } else { tl!("Add to favorites") };
-    let star = egui::Button::image(crate::icons::image(icon, 10.0, tint)).frame(false);
-    let response = ui.put(badge, star).on_hover_text(action);
+    let response = response.on_hover_text(action);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::WidgetType::Button, true, format!("{action}: {label}")));
     if response.clicked() {
         if favorite {
@@ -2283,7 +2288,7 @@ mod tests {
     #[test]
     fn appearance_resolves_both_saved_themes_and_follows_system() {
         let mut interface = prefs::Interface { appearance_mode: AppearanceMode::Auto, ..prefs::Interface::default() };
-        assert_eq!(selected_theme(&interface, Some(egui::Theme::Dark)), ThemeKind::ProMedium);
+        assert_eq!(selected_theme(&interface, Some(egui::Theme::Dark)), ThemeKind::Lumen, "Lumen's own theme by default");
         assert_eq!(selected_theme(&interface, Some(egui::Theme::Light)), ThemeKind::ProLight);
         interface.dark_theme = DarkTheme::Studio;
         interface.light_theme = LightTheme::Classic;
@@ -2349,7 +2354,7 @@ mod tests {
         let ctx = egui::Context::default();
         let mut app = PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default());
         sync_appearance(&mut app, &ctx);
-        assert_eq!(app.ui.theme, ThemeKind::ProMedium, "Photoshop's default brightness");
+        assert_eq!(app.ui.theme, ThemeKind::Lumen, "Lumen's own theme by default; Lighten steps from Medium Gray");
         let press = |app: &mut PhotocraftApp, id: &str| crate::menus::invoke(app, &ctx, id, json!({})).unwrap();
         for expected in [ThemeKind::ProLightGray, ThemeKind::ProLight, ThemeKind::ProLight] {
             press(&mut app, "view.lightenInterface");

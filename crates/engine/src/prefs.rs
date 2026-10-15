@@ -296,9 +296,9 @@ pub struct Interface {
 impl Default for Interface {
     fn default() -> Self {
         Self {
-            theme: Theme::ProMedium,
+            theme: Theme::Lumen,
             appearance_mode: AppearanceMode::Dark,
-            dark_theme: DarkTheme::ProMedium,
+            dark_theme: DarkTheme::Lumen,
             light_theme: LightTheme::ProLight,
             favorite_themes: Vec::new(),
             canvas_color: CanvasColor::Default,

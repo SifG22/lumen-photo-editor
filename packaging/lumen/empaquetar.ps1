@@ -62,6 +62,16 @@ New-Item -ItemType Directory -Force "$stage\licencias\DirectXShaderCompiler" | O
 Copy-Item "$dxcDir\LICENCE-MIT.txt", "$dxcDir\LICENSE-LLVM.txt", "$dxcDir\LICENSE-MS.txt" "$stage\licencias\DirectXShaderCompiler\"
 Copy-Item "$root\LICENSE-MIT", "$root\LICENSE-APACHE", "$root\NOTICE", "$root\ATTRIBUTION.md" "$stage\licencias\"
 Copy-Item "$root\assets\legal\TERMINOS.txt" "$stage\TERMINOS.txt"
+# Licencias de terceros que van dentro de Lumen.exe (fuentes OFL, iconos, diccionario, traducciones, tema).
+New-Item -ItemType Directory -Force "$stage\licencias\terceros" | Out-Null
+foreach ($f in @(
+    "assets\fonts\OFL-Inter.txt", "assets\fonts\OFL-JetBrainsMono.txt",
+    "assets\icons\LICENSE-lucide.txt", "assets\icons\LICENSE-noun-magnetic-lasso.txt", "assets\icons\LICENSE-symmetry-axes.txt",
+    "assets\dict\LICENSE-SCOWL.txt", "crates\ui-egui\src\i18n\LICENSE-translations.txt", "crates\ui-egui\src\LICENSE-solarized.txt",
+    "assets\app-icon\LICENSE.txt")) {
+    $leaf = (Split-Path $f -Leaf) -replace '^LICENSE\.txt$', 'LICENSE-icono-Lumen.txt'
+    if (Test-Path "$root\$f") { Copy-Item "$root\$f" "$stage\licencias\terceros\$leaf" }
+}
 @"
 Lumen Photo Editor $version para Windows ($Arch), por SifG22 - https://sifg.net
 
@@ -109,5 +119,5 @@ if ($Instalador) {
     $manifest[$Arch] = [ordered]@{ url = "$BaseUrl/Lumen-Setup-$version-$Arch.exe"; sha256 = $setupHash }
     # Sin BOM: es JSON para otro programa.
     [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 4), (New-Object System.Text.UTF8Encoding $false))
-    Write-Host "Aviso de actualizacion: $manifestPath (subelo a $BaseUrl/latest.json)"
+    Write-Host "Aviso de actualizacion: $manifestPath (subelo a https://sifg.net/lumen/latest.json)"
 }
