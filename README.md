@@ -69,7 +69,7 @@ Sí: abre y guarda PSD y PSB con sus capas, máscaras y capas de ajuste. Lumen n
 <details>
 <summary><b>¿Necesita internet?</b></summary>
 
-No. Solo consulta, como mucho una vez al día, si hay una versión nueva (`https://sifg.net/lumen/latest.json`). Se puede desactivar con la variable de entorno `LUMEN_NO_UPDATE=1`.
+No. Solo consulta, como mucho una vez al día, si hay una versión nueva en la [página de versiones](https://github.com/SifG22/lumen-photo-editor/releases) de GitHub. Se puede desactivar con la variable de entorno `LUMEN_NO_UPDATE=1`.
 </details>
 
 <details>

@@ -18,7 +18,7 @@ pub const AUTHOR: &str = "SifG22";
 
 /// Lumen's own version (About, the `.exe` details, the download names). Kept apart from the
 /// workspace version, which follows upstream.
-pub const VERSION: &str = "0.0.2";
+pub const VERSION: &str = "0.0.3";
 
 /// Lumen's website (Help menu, About, start screen).
 pub const WEBSITE: &str = "https://sifg.net";

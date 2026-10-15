@@ -15,12 +15,14 @@ param(
     [string]$Iscc = "",
     # Donde se publicaran los instaladores: con -Instalador se escribe dist\latest.json (el aviso de
     # actualizacion que lee Lumen, apps/photocraft/src/updater.rs) apuntando ahi.
-    [string]$BaseUrl = "https://sifg.net/lumen",
+    [string]$BaseUrl = "",
     [string]$Notas = ""
 )
 $ErrorActionPreference = "Stop"
 $root = Resolve-Path "$PSScriptRoot\..\.."
 $version = (Select-String -Path "$root\crates\ui-egui\src\brand.rs" -Pattern 'pub const VERSION: &str = "([^"]+)"').Matches[0].Groups[1].Value
+# Por defecto, los instaladores van adjuntos a la Release de GitHub de esta version.
+if (-not $BaseUrl) { $BaseUrl = "https://github.com/SifG22/lumen-photo-editor/releases/download/v$version" }
 $triple = if ($Arch -eq "arm64") { "aarch64-pc-windows-msvc" } else { "x86_64-pc-windows-msvc" }
 
 if (-not $NoBuild) {
@@ -119,5 +121,5 @@ if ($Instalador) {
     $manifest[$Arch] = [ordered]@{ url = "$BaseUrl/Lumen-Setup-$version-$Arch.exe"; sha256 = $setupHash }
     # Sin BOM: es JSON para otro programa.
     [System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 4), (New-Object System.Text.UTF8Encoding $false))
-    Write-Host "Aviso de actualizacion: $manifestPath (subelo a https://sifg.net/lumen/latest.json)"
+    Write-Host "Aviso de actualizacion: $manifestPath (va adjunto a la Release de GitHub; Lumen lo lee de alli)"
 }

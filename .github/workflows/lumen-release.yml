@@ -65,11 +65,18 @@ jobs:
           path: dist
           merge-multiple: true
       - name: Merge latest.json
-        # One update manifest for both architectures; copy it to https://sifg.net/lumen/latest.json.
+        # One update manifest for both architectures. Lumen reads it from
+        # releases/latest/download/latest.json, so it must be attached to every release.
         run: |
           jq -s '.[0] * .[1]' dist/latest-x64.json dist/latest-arm64.json > dist/latest.json
           rm dist/latest-x64.json dist/latest-arm64.json
           cat dist/latest.json
+      - name: Version-less copies
+        # Fixed names, so a website can always link
+        # https://github.com/<repo>/releases/latest/download/Lumen-Setup-x64.exe
+        run: |
+          cp dist/Lumen-Setup-*-x64.exe dist/Lumen-Setup-x64.exe
+          cp dist/Lumen-Setup-*-arm64.exe dist/Lumen-Setup-arm64.exe
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}

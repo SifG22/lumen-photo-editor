@@ -4,7 +4,7 @@
 //! downloads that architecture's installer, checks its SHA-256 and starts it; the installer closes
 //! the app (the unsaved-changes prompt still runs), updates it in place and reopens it.
 //!
-//! The manifest, published next to the installers:
+//! The manifest, attached to every GitHub release next to its installers:
 //!
 //! ```json
 //! {"version": "0.0.2", "notes": "Novedades…",
@@ -24,7 +24,9 @@ use photocraft_ui_egui::brand::{PRODUCT_NAME, VERSION};
 use serde_json::Value;
 
 /// Where the latest version is announced.
-pub const MANIFEST_URL: &str = "https://sifg.net/lumen/latest.json";
+/// GitHub serves `releases/latest/download/<file>` from the newest release, and every release
+/// carries its own `latest.json`, so publishing a release is all an update needs.
+pub const MANIFEST_URL: &str = "https://github.com/SifG22/lumen-photo-editor/releases/latest/download/latest.json";
 
 /// How often to look.
 const CHECK_EVERY: Duration = Duration::from_secs(24 * 60 * 60);
@@ -143,7 +145,8 @@ fn system32(exe: &str) -> PathBuf {
 
 /// Run Windows' curl (`-fsSL`, so HTTP errors fail) and return what it printed.
 fn curl(args: &[&str]) -> Result<Vec<u8>, String> {
-    let out = Command::new(system32("curl.exe")).args(["-fsSL", "-A", "LumenPhotoEditor-update"]).args(args).output().map_err(|e| format!("curl: {e}"))?;
+    let agent = format!("LumenPhotoEditor/{VERSION}");
+    let out = Command::new(system32("curl.exe")).args(["-fsSL", "-A", agent.as_str()]).args(args).output().map_err(|e| format!("curl: {e}"))?;
     if !out.status.success() {
         return Err(format!("curl failed ({}): {}", out.status, String::from_utf8_lossy(&out.stderr).trim()));
     }

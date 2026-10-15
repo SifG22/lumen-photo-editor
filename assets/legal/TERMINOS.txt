@@ -32,7 +32,9 @@ contenido que creas y de tener los derechos sobre las imágenes que editas.
 
 6. Actualizaciones y conexión a internet
 Lumen funciona sin conexión. Para avisarte de nuevas versiones, como mucho una vez al día consulta
-https://sifg.net/lumen/latest.json; esa consulta solo transmite lo que cualquier petición web
+el aviso de la última versión publicada en GitHub
+(https://github.com/SifG22/lumen-photo-editor/releases/latest/download/latest.json);
+esa consulta solo transmite lo que cualquier petición web
 transmite (tu dirección IP y la versión de la aplicación en el agente de usuario). Si aceptas una
 actualización, Lumen descarga el instalador, comprueba su huella SHA-256 y lo ejecuta. Puedes
 desactivar la comprobación definiendo la variable de entorno LUMEN_NO_UPDATE=1.
