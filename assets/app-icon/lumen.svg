@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Lumen">
+    <defs>
+        <linearGradient id="lumen" x1="0.15" y1="0" x2="0.85" y2="1">
+            <stop offset="0" stop-color="#ffc76a" />
+            <stop offset="0.45" stop-color="#ff7a59" />
+            <stop offset="1" stop-color="#7c5cff" />
+        </linearGradient>
+        <radialGradient id="lumen-glow" cx="0.47" cy="0.53" r="0.55">
+            <stop offset="0" stop-color="#ffb26b" stop-opacity="0.5" />
+            <stop offset="1" stop-color="#ffb26b" stop-opacity="0" />
+        </radialGradient>
+    </defs>
+    <rect width="32" height="32" rx="8" fill="#0a0d12" />
+    <circle cx="15" cy="17" r="13" fill="url(#lumen-glow)" />
+    <path d="M15 5 C16.5 11.5 20.5 15.5 27 17 C20.5 18.5 16.5 22.5 15 29 C13.5 22.5 9.5 18.5 3 17 C9.5 15.5 13.5 11.5 15 5 Z" fill="url(#lumen)" />
+    <path d="M26 3 C26.55 5.3 27.7 6.45 30 7 C27.7 7.55 26.55 8.7 26 11 C25.45 8.7 24.3 7.55 22 7 C24.3 6.45 25.45 5.3 26 3 Z" fill="#ffc76a" />
+</svg>

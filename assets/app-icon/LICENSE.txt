@@ -1,0 +1,15 @@
+Lumen app icon (lumen.svg and the files rendered from it in this directory: photocraft.ico,
+photocraft.icns, photocraft-1024.png, hicolor/).
+
+The Lumen logo (a four-pointed spark with a small star), copyright (c) SifG22. It is Lumen's brand
+mark: it is not covered by the MIT / Apache-2.0 licence of the code, and forks must not use it.
+The file names keep their upstream `photocraft` names so packaging and upstream merges keep working.
+
+photocraft.svg and photocraft-small.svg are upstream PhotoCraft's original icon (the kitsune),
+kept only as a test fixture for the SVG importer (crates/io). They were made for PhotoCraft by its
+project owner and are licensed like the rest of PhotoCraft, under either of
+
+  * Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+  * MIT license (https://opensource.org/licenses/MIT)
+
+at your option.

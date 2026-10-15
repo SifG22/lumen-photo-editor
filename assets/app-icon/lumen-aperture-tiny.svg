@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Lumen">
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8a66"/>
+      <stop offset="1" stop-color="#f0603e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#tile)"/>
+  <circle cx="256" cy="256" r="158" fill="none" stroke="#ffffff" stroke-width="58"/>
+  <polygon points="256.0,170.0 330.5,213.0 330.5,299.0 256.0,342.0 181.5,299.0 181.5,213.0" fill="#ffffff"/>
+</svg>

@@ -1,0 +1,79 @@
+# Lumen para Windows: compila x64 y ARM64 y los publica como descargas de una GitHub Release.
+#
+# Se lanza al subir una etiqueta de versión (git tag v0.0.1 && git push origin v0.0.1) o a mano
+# desde la pestaña Actions ("Run workflow"). ARM64 se compila en cruzado en la máquina x64, así
+# que no hace falta un runner ARM.
+name: Lumen release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            triple: x86_64-pc-windows-msvc
+          - arch: arm64
+            triple: aarch64-pc-windows-msvc
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: lumen-${{ matrix.triple }}
+      - name: Build
+        shell: pwsh
+        env:
+          PHOTOCRAFT_REQUIRE_WINRES: "1"
+          PHOTOCRAFT_BUILD_SHA: ${{ github.sha }}
+        run: |
+          $env:PHOTOCRAFT_BUILD_DATE = (Get-Date -Format "yyyy-MM-dd")
+          cargo build --release -p photocraft --target ${{ matrix.triple }}
+      - name: Package
+        shell: pwsh
+        # Inno Setup 6 viene instalado en las maquinas windows-latest de GitHub.
+        # The installers are published as this Release's assets, so latest.json points there.
+        run: |
+          packaging/lumen/empaquetar.ps1 -Arch ${{ matrix.arch }} -NoBuild -Instalador -BaseUrl "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
+          Move-Item dist/latest.json dist/latest-${{ matrix.arch }}.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lumen-windows-${{ matrix.arch }}
+          path: |
+            dist/*.zip*
+            dist/Lumen-Setup-*
+            dist/latest-*.json
+
+  release:
+    needs: windows
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Merge latest.json
+        # One update manifest for both architectures; copy it to https://sifg.net/lumen/latest.json.
+        run: |
+          jq -s '.[0] * .[1]' dist/latest-x64.json dist/latest-arm64.json > dist/latest.json
+          rm dist/latest-x64.json dist/latest-arm64.json
+          cat dist/latest.json
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" dist/* --repo "${GITHUB_REPOSITORY}" \
+            --title "Lumen ${GITHUB_REF_NAME}" \
+            --notes "Lumen ${GITHUB_REF_NAME} para Windows, por SifG22 (https://sifg.net). Descarga el instalador (Lumen-Setup) de tu PC: x64 (la mayoría) o arm64 (Surface Pro X, Snapdragon). El ZIP es la versión portable, sin instalar. Basado en PhotoCraft (https://github.com/storytold/photocraft), licencia MIT."
