@@ -296,14 +296,18 @@ fn path_overlay_drawn_for_non_vector_tools() {
     let accent_r = accent.r();
     let accent_g = accent.g();
     let accent_b = accent.b();
+    // Coverage is read from the accent's darkest channel, the one furthest from the white canvas
+    // (Lumen's orange accent has a red of 255, which a blend over white can't tell apart).
+    let accent_rgb = [accent_r, accent_g, accent_b];
+    let key = (0..3).min_by_key(|&c| accent_rgb[c]).unwrap_or(0);
     let is_accent_stroke = |pixel: [u8; 4]| {
-        let denom = f32::from(255u8.saturating_sub(accent_r)).max(1.0);
-        let coverage = f32::from(255u8.saturating_sub(pixel[0])) / denom;
+        let denom = f32::from(255u8.saturating_sub(accent_rgb[key])).max(1.0);
+        let coverage = f32::from(255u8.saturating_sub(pixel[key])) / denom;
         if !(0.2..=1.05).contains(&coverage) {
             return false;
         }
         let blended = |channel: u8| 255.0 + coverage * (f32::from(channel) - 255.0);
-        (f32::from(pixel[1]) - blended(accent_g)).abs() <= 12.0 && (f32::from(pixel[2]) - blended(accent_b)).abs() <= 12.0
+        (0..3).all(|c| (f32::from(pixel[c]) - blended(accent_rgb[c])).abs() <= 12.0)
     };
 
     let has_accent_near = |at: egui::Pos2| {

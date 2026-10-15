@@ -76,6 +76,10 @@ pub fn rebrand(s: &str) -> String {
     s.replace(UPSTREAM_NAME, PRODUCT_NAME)
 }
 
+/// UI strings that credit the upstream project by name, so [`rebrand`] leaves their translations
+/// alone (Help › Based on PhotoCraft).
+pub const NAMES_UPSTREAM: &[&str] = &["Based on PhotoCraft (GitHub)"];
+
 /// 128 px: sharp at 20 pt on a 3× display, and the mipmaps keep it clean at 1×.
 const ICON_PNG: &[u8] = include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.photocraft.png");
 
@@ -139,6 +143,9 @@ mod tests {
         assert_eq!(tr(Lang::EN, "Layer"), "Layer");
         assert_eq!(rebrand("Lumen is built on PhotoCraft"), "Lumen is built on Lumen Photo Editor");
         assert_eq!(crate::i18n::fmt(tr(es, "Version {version}"), &[("version", UPSTREAM_NAME)]), "Versión PhotoCraft");
+        // The Help item that credits the upstream project keeps its name, in every language.
+        assert_eq!(tr(Lang::EN, "Based on PhotoCraft (GitHub)"), "Based on PhotoCraft (GitHub)");
+        assert_eq!(tr(es, "Based on PhotoCraft (GitHub)"), "Basado en PhotoCraft (GitHub)");
     }
 
     #[test]

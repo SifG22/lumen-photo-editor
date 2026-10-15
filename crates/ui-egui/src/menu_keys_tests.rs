@@ -67,7 +67,7 @@ fn alt_focuses_the_bar_arrows_move_and_down_opens_the_lit_menu() {
     key(&mut h, egui::Key::ArrowDown);
     h.run_steps(2);
     assert!(is_open(&h.ctx), "↓ opens the lit menu");
-    assert!(h.query_by_label_contains("Undo").is_some(), "Edit is open");
+    assert!(h.query_by_label_contains("Toggle Last State").is_some(), "Edit is open");
     assert_eq!(Keys::current(&h.ctx).focus, None, "the focus moves into the menu");
     let first = rows(&h, 0).iter().position(|r| r.enabled).unwrap();
     assert_eq!(Nav::current(&h.ctx).highlighted(0), Some(first), "its first row is lit, as on Windows");
@@ -102,7 +102,7 @@ fn alt_with_a_letter_opens_that_menu_and_enter_opens_the_lit_one() {
     let mut h = bar();
     alt_key(&mut h, egui::Key::E);
     h.run_steps(2);
-    assert!(is_open(&h.ctx) && h.query_by_label_contains("Undo").is_some(), "Alt+E opens Edit");
+    assert!(is_open(&h.ctx) && h.query_by_label_contains("Toggle Last State").is_some(), "Alt+E opens Edit");
     alt_key(&mut h, egui::Key::F);
     h.run_steps(2);
     assert!(h.query_by_label_contains("Open…").is_some(), "Alt+F switches to File while a menu is open");
@@ -202,7 +202,7 @@ fn the_shortcuts_wait_while_the_keyboard_is_on_the_bar() {
     key(&mut h, egui::Key::E);
     h.run_steps(2);
     assert_eq!(h.state().ui.tool, tool, "E did not pick the Eraser");
-    assert!(is_open(&h.ctx) && h.query_by_label_contains("Undo").is_some(), "E opened Edit");
+    assert!(is_open(&h.ctx) && h.query_by_label_contains("Toggle Last State").is_some(), "E opened Edit");
     key(&mut h, egui::Key::Escape);
     h.run_steps(2);
     assert!(!is_open(&h.ctx));

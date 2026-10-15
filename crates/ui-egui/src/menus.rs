@@ -103,8 +103,8 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("help.artcraftWebsite", "ArtCraft Website", &["Help"], None),
     ("help.github", "PhotoCraft on GitHub", &["Help"], None),
     ("help.reportIssue", "Report an Issue…", &["Help"], None),
-    ("help.lumenWebsite", "Web de Lumen (sifg.net)", &["Help"], None),
-    ("help.basedOn", "Basado en PhotoCraft (GitHub)", &["Help"], None),
+    ("help.lumenWebsite", "Lumen Website (sifg.net)", &["Help"], None),
+    ("help.basedOn", "Based on PhotoCraft (GitHub)", &["Help"], None),
     ("help.systemInfo", "System Info…", &["Help"], None),
     ("help.about", "About PhotoCraft", &["Help"], None),
 ];

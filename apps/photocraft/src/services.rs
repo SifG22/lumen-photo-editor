@@ -706,8 +706,8 @@ mod tests {
         let exts: Vec<&str> = asked.iter().filter_map(|s| s.rsplit_once('.').map(|(_, e)| e)).collect();
         // The extension each save above should suggest, in order.
         let want = [
-            "psd",                       // Save As untitled
-            "pcraft jpeg gif bmp psd",   // Save As opened .pcraft .jpeg .gif .bmp .dng
+            "lumen",                     // Save As untitled (Lumen: a Lumen project)
+            "pcraft jpeg gif bmp lumen", // Save As opened .pcraft .jpeg .gif .bmp .dng
             "psd",                       // Save a Copy
             "png jpg webp tif tga",      // Export As
             "png jpg gif webp",          // Quick Export
@@ -720,13 +720,13 @@ mod tests {
             // The first type's first extension is the one Windows adds to the bare name.
             assert_eq!(save_filters(name)[0].1.first().map(String::as_str), Some(ext), "{name}: {:?}", save_filters(name)[0]);
         }
-        assert_eq!(save_filters("Untitled")[0].0, "PSD Document", "no extension keeps the default");
+        assert_eq!(save_filters("Untitled")[0].0, "Proyecto Lumen", "no extension keeps the default");
     }
 
     /// Every flat format Save As offers is one PhotoCraft writes, and ICO is among them (#4357).
     #[test]
     fn save_as_offers_only_writable_formats_including_ico() {
-        let layered = ["psd", "psb", "pcraft", "ora"];
+        let layered = ["lumen", "psd", "psb", "pcraft", "ora"];
         for (name, exts) in SAVE_FILTERS {
             for ext in exts.iter().filter(|e| !layered.contains(e)) {
                 let format = photocraft_codecs::from_extension(ext).unwrap_or_else(|| panic!("{name}: .{ext} is no known format"));

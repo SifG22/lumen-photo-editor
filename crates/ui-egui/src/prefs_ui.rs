@@ -2476,6 +2476,9 @@ mod tests {
         let (mut app, store) = app_with_store();
         let ctx = egui::Context::default();
         PhotocraftApp::setup_context(&ctx, Default::default());
+        // Lumen: the first theme of the list is the default, so set another one first and the
+        // first choice below is a change that gets saved too.
+        app.run("prefs.set", json!({"path": "interface.theme", "value": "proMedium"})).unwrap();
         for kind in ThemeKind::ALL {
             app.run("prefs.set", json!({"path": "interface.theme", "value": kind.id()})).unwrap();
             appearance_frame(&mut app, &ctx, Some(egui::Theme::Dark));
@@ -2510,7 +2513,7 @@ mod tests {
         assert_eq!(ctx.options(|o| o.theme_preference), egui::ThemePreference::System);
         assert_palette(&ctx, ThemeKind::ProLight);
         appearance_frame(&mut app, &ctx, Some(egui::Theme::Dark));
-        assert_palette(&ctx, ThemeKind::ProMedium);
+        assert_palette(&ctx, ThemeKind::Lumen);
         assert_eq!(app.session.prefs().interface.appearance_mode, AppearanceMode::Auto);
     }
 

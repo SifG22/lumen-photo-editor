@@ -260,7 +260,7 @@ impl LangInfo {
         self.catalog.get_or_init(|| {
             let text = if self.source.is_empty() { brand_entries() } else { self.text() };
             let mut catalog = Catalog::parse(&text);
-            catalog.map_translations(crate::brand::rebrand);
+            catalog.map_translations(crate::brand::NAMES_UPSTREAM, crate::brand::rebrand);
             catalog
         })
     }

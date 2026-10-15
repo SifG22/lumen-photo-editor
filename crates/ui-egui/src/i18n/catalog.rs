@@ -82,9 +82,15 @@ impl Catalog {
         c
     }
 
-    /// Pass every translation through `f` (the product rebrand, `brand::rebrand`).
-    pub fn map_translations(&mut self, f: impl Fn(&str) -> String) {
-        for v in self.plain.values_mut().chain(self.contextual.values_mut()).chain(self.ids.values_mut()) {
+    /// Pass every translation through `f` (the product rebrand, `brand::rebrand`), except those of
+    /// the plain strings in `keep`.
+    pub fn map_translations(&mut self, keep: &[&str], f: impl Fn(&str) -> String) {
+        for (k, v) in self.plain.iter_mut() {
+            if !keep.contains(&k.as_str()) {
+                *v = f(v);
+            }
+        }
+        for v in self.contextual.values_mut().chain(self.ids.values_mut()) {
             *v = f(v);
         }
         for v in self.plurals.values_mut().flatten() {

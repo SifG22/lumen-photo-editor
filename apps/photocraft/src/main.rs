@@ -669,7 +669,14 @@ mod tests {
             .with_maximized(true);
         let opened = hook(saved);
         assert_eq!(opened.fullscreen, Some(false), "Standard Screen Mode is where PhotoCraft starts");
-        assert_eq!(opened.maximized, Some(true), "the rest of the saved geometry is kept");
+        // Lumen: on Windows the window is created unmaximized and maximized once the app exists
+        // (`START_MAXIMIZED`), so it doesn't flash while it is created.
+        if cfg!(windows) {
+            assert_eq!(opened.maximized, Some(false), "maximized after creation, not during it");
+            assert!(super::START_MAXIMIZED.load(std::sync::atomic::Ordering::Relaxed), "and remembered for then");
+        } else {
+            assert_eq!(opened.maximized, Some(true), "the rest of the saved geometry is kept");
+        }
         assert_eq!(opened.inner_size, Some(egui::vec2(2560.0, 1392.0)));
     }
 

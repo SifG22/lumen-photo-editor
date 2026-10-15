@@ -255,7 +255,7 @@ fn left_and_right_switch_menus_and_shortcuts_wait_while_one_is_open() {
     key(&mut h, egui::Key::ArrowRight);
     h.run_steps(2);
     assert!(h.query_by_label_contains("Open…").is_none(), "→ leaves File");
-    assert!(h.query_by_label_contains("Undo").is_some(), "→ opens Edit");
+    assert!(h.query_by_label_contains("Toggle Last State").is_some(), "→ opens Edit");
     key(&mut h, egui::Key::ArrowLeft);
     h.run_steps(2);
     assert!(h.query_by_label_contains("Open…").is_some(), "← back to File");

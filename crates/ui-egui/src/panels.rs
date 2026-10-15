@@ -2757,7 +2757,6 @@ fn paint_clipping_indicator(painter: &egui::Painter, at: Pos2, color: Color32) {
     painter.add(egui::Shape::line(vec![at + vec2(2.0, 0.0), tip, at + vec2(8.0, 0.0)], stroke));
 }
 
-#[allow(clippy::too_many_arguments)]
 /// A Layers panel row's height: Photoshop's default (medium) thumbnails, 32 pt rows.
 fn layer_row_height(t: &Tokens) -> f32 {
     if t.pro { 32.0 } else { 46.0 }
@@ -2788,6 +2787,7 @@ mod row_cull_tests {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn layer_row(
     app: &mut PhotocraftApp,
     ctx: &egui::Context,

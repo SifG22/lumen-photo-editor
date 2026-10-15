@@ -3144,3 +3144,15 @@ curves	Smooth	Сгладить
 # View › Guides › right-click a guide
 	Edit Selected Guides	Изменить выбранные направляющие
 	Clear Selected Guides	Удалить выбранные направляющие
+# Lumen: Image › Quick Styles, Window › Theme, Help, Preferences › Interface
+	Quick Styles	Быстрые стили
+	Warm	Тёплый
+	Cool	Холодный
+	Vintage	Винтаж
+	High-Contrast B&W	Контрастное Ч/Б
+	Cinema	Кино
+	Pop	Поп
+	Lumen Theme	Тема Lumen
+	Lumen Website (sifg.net)	Сайт Lumen (sifg.net)
+	Based on PhotoCraft (GitHub)	На основе PhotoCraft (GitHub)
+	Lumen	Lumen

@@ -33,11 +33,11 @@ fn pdn_save_requests_a_native_copy_without_overwriting_the_source() {
     let ctx = egui::Context::default();
     menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/layers.pcraft"));
-    answer(&open, Some(FileDialogAnswer::SaveTo("/pics/layers.pcraft".into())));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/layers.lumen"));
+    answer(&open, Some(FileDialogAnswer::SaveTo("/pics/layers.lumen".into())));
     app.poll_file_dialog(&ctx, None);
-    assert_eq!(*written.borrow(), ["/pics/layers.pcraft"]);
-    assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/layers.pcraft"));
+    assert_eq!(*written.borrow(), ["/pics/layers.lumen"]);
+    assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/layers.lumen"));
 }
 
 /// A real flat JPEG import, optionally edited to contain another layer. A filename without a
@@ -54,37 +54,37 @@ fn jpeg_app(path: Option<&str>, layered: bool) -> (PhotocraftApp, Open, Rc<RefCe
 }
 
 #[test]
-fn layered_flat_source_save_defaults_to_psd_without_overwriting_source() {
+fn layered_flat_source_save_defaults_to_lumen_without_overwriting_source() {
     let ctx = egui::Context::default();
     for command in ["file.save", "file.saveAs"] {
         let (mut app, open, written) = jpeg_app(Some("/pics/My image.JPEG"), true);
         menus::invoke(&mut app, &ctx, command, json!({})).unwrap();
         app.poll_file_dialog(&ctx, None);
         assert!(
-            matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/My image.psd"),
+            matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/My image.lumen"),
             "{command}: {:?}",
             open.borrow().first().map(|(r, _)| r.clone())
         );
         assert!(written.borrow().is_empty(), "asking where to save must not overwrite the JPEG");
         assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/My image.JPEG"));
-        answer(&open, Some(FileDialogAnswer::SaveTo("/pics/My image.psd".into())));
+        answer(&open, Some(FileDialogAnswer::SaveTo("/pics/My image.lumen".into())));
         app.poll_file_dialog(&ctx, None);
-        assert_eq!(*written.borrow(), ["/pics/My image.psd"]);
-        assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/My image.psd"));
+        assert_eq!(*written.borrow(), ["/pics/My image.lumen"]);
+        assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/My image.lumen"));
         assert_eq!(app.session.active().unwrap().doc.layers.len(), 2);
     }
 }
 
 #[test]
-fn layered_filename_only_save_defaults_to_psd() {
+fn layered_filename_only_save_defaults_to_lumen() {
     let (mut app, open, written) = jpeg_app(None, true);
     let ctx = egui::Context::default();
     menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "My image.psd"));
-    answer(&open, Some(FileDialogAnswer::SaveTo("My image.psd".into())));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "My image.lumen"));
+    answer(&open, Some(FileDialogAnswer::SaveTo("My image.lumen".into())));
     app.poll_file_dialog(&ctx, None);
-    assert_eq!(*written.borrow(), ["My image.psd"]);
+    assert_eq!(*written.borrow(), ["My image.lumen"]);
 }
 
 #[test]
@@ -129,7 +129,7 @@ fn transparent_png_keeps_its_format_until_its_lone_layer_becomes_smart() {
     assert!(matches!(app.session.active().unwrap().doc.layers[0].content, photocraft_doc::LayerContent::Smart(_)));
     menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/transparent.psd"));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/transparent.lumen"));
     assert!(written.borrow().is_empty());
     answer(&open, None);
     app.poll_file_dialog(&ctx, None);
@@ -349,7 +349,7 @@ fn the_app_keeps_running_while_a_dialog_is_open() {
     assert_eq!(menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap(), json!({"fileDialog": "save"}));
     assert!(open.borrow().is_empty(), "shown at the end of the frame, which has the window to parent it to");
     app.poll_file_dialog(&ctx, None);
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested.ends_with(".psd")));
+    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested.ends_with(".lumen")));
     // Frames go on while the user is in the dialog: nothing is written, commands still run, and
     // a second dialog is refused.
     for _ in 0..3 {
@@ -410,14 +410,14 @@ fn save_paths_without_an_extension_get_the_suggested_one() {
     app.poll_file_dialog(&ctx, None);
     answer(&open, Some(FileDialogAnswer::SaveTo("/pics/cat".into())));
     app.poll_file_dialog(&ctx, None);
-    assert_eq!(*written.borrow(), ["/pics/cat.psd"]);
-    assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/cat.psd"));
+    assert_eq!(*written.borrow(), ["/pics/cat.lumen"]);
+    assert_eq!(app.session.active().unwrap().path.as_deref(), Some("/pics/cat.lumen"));
     // A name that already has an extension is left alone.
     menus::invoke(&mut app, &ctx, "file.saveAs", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
     answer(&open, Some(FileDialogAnswer::SaveTo("/pics/dog.png".into())));
     app.poll_file_dialog(&ctx, None);
-    assert_eq!(*written.borrow(), ["/pics/cat.psd", "/pics/dog.png"]);
+    assert_eq!(*written.borrow(), ["/pics/cat.lumen", "/pics/dog.png"]);
 }
 
 #[test]
@@ -866,8 +866,8 @@ fn export_as_with_several_artboards_selected_writes_one_file_each() {
 }
 
 /// #3806: File › Save on an OpenRaster file that can't hold the document (here an adjustment
-/// layer) doesn't overwrite it: Save As opens on a PSD with a notice saying what the .ora would
-/// drop, and the PSD becomes the document's file. A plain document still saves back to its .ora.
+/// layer) doesn't overwrite it: Save As opens on a Lumen project (upstream: a PSD) with a notice
+/// saying what the .ora would drop, and the file picked becomes the document's file. A plain document still saves back to its .ora.
 #[test]
 fn openraster_save_never_overwrites_what_it_cannot_hold() {
     let (mut app, open, written) = app();
@@ -881,7 +881,10 @@ fn openraster_save_never_overwrites_what_it_cannot_hold() {
     menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
     app.poll_file_dialog(&ctx, None);
     assert_eq!(written.borrow().len(), 1, "the .ora is not overwritten");
-    assert!(matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/art.psd"), "Save As offers PSD");
+    assert!(
+        matches!(open.borrow().as_slice(), [(FileDialogRequest::Save { suggested }, _)] if suggested == "/pics/art.lumen"),
+        "Save As offers a Lumen project"
+    );
     assert_eq!(app.ui.notices.len(), notices + 1);
     assert!(app.ui.notices.last().unwrap().lines.iter().any(|l| l.contains("adjustment layers")), "{:?}", app.ui.notices.last().unwrap().lines);
     assert!(app.session.active().unwrap().is_dirty(), "the edits are still unsaved");

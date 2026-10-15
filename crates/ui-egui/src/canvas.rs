@@ -6405,7 +6405,8 @@ mod tests {
         let uploaded = |ctx: &egui::Context| ctx.tex_manager().read().allocated().filter(|(_, meta)| meta.name == "canvas-dots").count();
         for kind in ThemeKind::ALL {
             let ctx = egui::Context::default();
-            let dotted = matches!(kind, ThemeKind::Studio | ThemeKind::StudioLight | ThemeKind::SolarizedDark);
+            // Lumen's theme has its own faint dot grid, like Studio.
+            let dotted = matches!(kind, ThemeKind::Lumen | ThemeKind::Studio | ThemeKind::StudioLight | ThemeKind::SolarizedDark);
             assert_eq!(tiles(&ctx, kind), dotted, "{kind:?}");
             assert_eq!(uploaded(&ctx), usize::from(dotted), "{kind:?}");
         }
