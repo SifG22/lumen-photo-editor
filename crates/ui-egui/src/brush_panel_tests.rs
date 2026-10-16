@@ -1186,6 +1186,10 @@ fn switching_tools_forgets_the_picked_preset() {
 fn options_bar_reaches_brush_settings_and_the_preset_library() {
     use egui_kittest::kittest::Queryable;
     let mut h = app_harness();
+    // The canvas sits below the options bar, as in the app, so the panel (placed from the canvas's
+    // top) opens clear of the toggle; at the harness's default canvas rect it covered the button
+    // once Lumen's undo/redo buttons pushed it right, and the second click hit the panel.
+    h.state_mut().last_canvas_rect = egui::Rect::from_min_max(egui::pos2(0.0, 60.0), egui::pos2(1400.0, 900.0));
     // Photoshop's "Toggle the Brush Settings panel" button beside the brush chip.
     h.get_by_label("Toggle the Brush Settings panel").click();
     h.run_steps(3);

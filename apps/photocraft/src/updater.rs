@@ -15,6 +15,10 @@
 //! Downloading and hashing use Windows' own `curl.exe` and `certutil.exe` (by full path, never
 //! through `PATH`), so no network code is linked in. Every failure is logged and ignored: an
 //! update check must never get in the way. `LUMEN_NO_UPDATE=1` turns it off.
+//!
+//! Nothing piles up on disk: the manifest is read into memory (never saved), the only file kept is
+//! the tiny `lumen-update.json` state, and the downloaded installer is removed from the temp folder
+//! once that version (or a newer one) is running, or when its download or checksum fails.
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -41,6 +45,7 @@ pub fn spawn(config_dir: Option<PathBuf>, automation: bool) {
     }
     let spawned = std::thread::Builder::new().name("lumen-update".into()).spawn(move || {
         std::thread::sleep(START_DELAY);
+        remove_old_installers(&std::env::temp_dir());
         if let Err(e) = check(config_dir.as_deref()) {
             log::info!("update check: {e}");
         }
@@ -112,10 +117,15 @@ fn check(dir: Option<&Path>) -> Result<(), String> {
         return Ok(());
     }
 
-    let file = std::env::temp_dir().join(format!("Lumen-Setup-{}-{arch}.exe", sanitize(latest)));
+    let file = std::env::temp_dir().join(installer_name(latest, arch));
     let path = file.to_str().ok_or("temp path is not UTF-8")?;
-    curl(&["--max-time", "900", "-o", path, url])?;
-    let got = sha256(&file)?;
+    if let Err(e) = curl(&["--max-time", "900", "-o", path, url]) {
+        let _ = std::fs::remove_file(&file);
+        return Err(e);
+    }
+    let got = sha256(&file).inspect_err(|_| {
+        let _ = std::fs::remove_file(&file);
+    })?;
     if got != sha {
         let _ = std::fs::remove_file(&file);
         return Err(format!("installer checksum mismatch: expected {sha}, got {got}"));
@@ -125,6 +135,37 @@ fn check(dir: Option<&Path>) -> Result<(), String> {
         .spawn()
         .map_err(|e| format!("could not start the installer: {e}"))?;
     Ok(())
+}
+
+/// The downloaded installer's file name in the temp folder.
+fn installer_name(version: &str, arch: &str) -> String {
+    format!("{INSTALLER_PREFIX}{}-{arch}.exe", sanitize(version))
+}
+
+const INSTALLER_PREFIX: &str = "Lumen-Setup-";
+
+/// Delete the installers this updater downloaded into `temp` for this version or older ones: once
+/// that version runs they are only taking space. One still running (Windows locks it) stays and
+/// goes on a later start.
+fn remove_old_installers(temp: &Path) {
+    let Ok(entries) = std::fs::read_dir(temp) else { return };
+    for entry in entries.flatten() {
+        let name = entry.file_name();
+        let Some(version) = name.to_str().and_then(installer_version) else { continue };
+        if !is_newer(version, VERSION) {
+            match std::fs::remove_file(entry.path()) {
+                Ok(()) => log::info!("removed old installer {}", entry.path().display()),
+                Err(e) => log::info!("old installer {} not removed yet: {e}", entry.path().display()),
+            }
+        }
+    }
+}
+
+/// The version in a name made by [`installer_name`], or `None` for any other file.
+fn installer_version(name: &str) -> Option<&str> {
+    let rest = name.strip_prefix(INSTALLER_PREFIX)?;
+    let rest = rest.strip_suffix("-x64.exe").or_else(|| rest.strip_suffix("-arm64.exe"))?;
+    (!rest.is_empty() && rest.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-')).then_some(rest)
 }
 
 /// `a.b.c` newer than `current`? Missing or non-numeric parts count as 0.
@@ -192,6 +233,29 @@ mod tests {
         let spaced: String = hex.as_bytes().chunks(2).map(|c| String::from_utf8_lossy(c).to_uppercase()).collect::<Vec<_>>().join(" ");
         assert_eq!(parse_certutil(&format!("SHA256 hash:\n{spaced}\n")).as_deref(), Some(hex));
         assert_eq!(parse_certutil("CertUtil: error"), None);
+    }
+
+    #[test]
+    fn only_our_installers_up_to_this_version_are_removed() {
+        assert_eq!(installer_version(&installer_name("0.0.2", "x64")), Some("0.0.2"));
+        assert_eq!(installer_version("Lumen-Setup-1.2.3-arm64.exe"), Some("1.2.3"));
+        assert_eq!(installer_version("Lumen-Setup--x64.exe"), None);
+        assert_eq!(installer_version("Lumen-Setup-0.0.2-x64.exe.part"), None);
+        assert_eq!(installer_version("Other-Setup-0.0.2-x64.exe"), None);
+
+        let dir = std::env::temp_dir().join(format!("lumen-updater-test-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let old = dir.join(installer_name("0.0.0", "x64"));
+        let current = dir.join(installer_name(VERSION, "arm64"));
+        let newer = dir.join(installer_name("999.0.0", "x64"));
+        let other = dir.join("notes.txt");
+        for f in [&old, &current, &newer, &other] {
+            std::fs::write(f, b"x").unwrap();
+        }
+        remove_old_installers(&dir);
+        assert!(!old.exists() && !current.exists(), "installed versions go");
+        assert!(newer.exists() && other.exists(), "a pending update and other files stay");
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

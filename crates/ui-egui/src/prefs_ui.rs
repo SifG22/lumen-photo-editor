@@ -2477,8 +2477,10 @@ mod tests {
         let ctx = egui::Context::default();
         PhotocraftApp::setup_context(&ctx, Default::default());
         // Lumen: the first theme of the list is the default, so set another one first and the
-        // first choice below is a change that gets saved too.
+        // first choice below is a change that gets saved too. Saving happens on the next frame, so
+        // draw one in between: without it the two changes cancel out and nothing is ever saved.
         app.run("prefs.set", json!({"path": "interface.theme", "value": "proMedium"})).unwrap();
+        appearance_frame(&mut app, &ctx, Some(egui::Theme::Dark));
         for kind in ThemeKind::ALL {
             app.run("prefs.set", json!({"path": "interface.theme", "value": kind.id()})).unwrap();
             appearance_frame(&mut app, &ctx, Some(egui::Theme::Dark));
