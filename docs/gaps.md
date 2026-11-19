@@ -54,7 +54,7 @@ what an agent can't finish alone.
   scripted check there) is the only real oracle.
 
 ### G6. Missing tools
-- **Missing (1 of 68):** Art History Brush. Convert Point landed (#3204). Freeform
+- **Missing (0 of 68):** none. Art History Brush landed 2026-11-19 (Lumen, `paint.artHistoryBrush`: ten styles, Area, Tolerance, history-state source; strokes follow the source's contours; not yet compared against Photoshop renders). Convert Point landed (#3204). Freeform
   Pen and Curvature Pen landed (#1054); Color Sampler landed (#1046, `view.colorSamplers.*`); Horizontal and Vertical Type Mask landed (#1055,
   `type.createSelection`); Perspective Crop landed (#1043, `image.perspectiveCrop`); Frame landed
   (#2914).

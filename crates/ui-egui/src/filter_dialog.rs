@@ -388,6 +388,11 @@ fn apply_command_defaults(app: &PhotocraftApp, command: &str, fields: &mut Map<S
     if command == "edit.assignProfile" {
         assign_profile_defaults(app, fields);
     }
+    // Photoshop's Replace Color opens with its sample eyedropper active (#6279): the first click
+    // on the image picks the colour.
+    if command == REPLACE_COLOR {
+        fields.insert(COLOR_EYEDROPPER.into(), json!(true));
+    }
 }
 
 /// Assign Profile offers only the profiles the document's colour mode can take (#4951): the
@@ -607,6 +612,8 @@ fn uses_angle_dial(command: &str, key: &str) -> bool {
 /// eyedropper like Photoshop's. While armed, the next click on the image writes the merged
 /// composite colour into the `color` field (the same sampler the Color Picker uses).
 const REPLACE_COLOR: &str = "image.adjustments.replaceColor";
+/// What OK on an edited smart filter runs (`smart_ui::confirm_command`); its preview too.
+const SMART_FILTER_SET_PARAMS: &str = "layer.smartFilter.setParams";
 const COLOR_EYEDROPPER: &str = "__colorEyedropper";
 
 fn color_eyedropper_owns(f: &Map<String, Value>) -> bool {
@@ -882,8 +889,9 @@ pub(crate) fn preview_document_for_target(
         return crate::select_mask_view::preview_document(doc, active, params, k, cancel);
     }
     // Warp Text renders the type again from the layer model (font size, position), which a
-    // reduced proxy doesn't scale: it runs at full size and the result is reduced (#218).
-    let (run_k, reduce_k) = if command == "type.warpText" { (1, k) } else { (k, 1) };
+    // reduced proxy doesn't scale: it runs at full size and the result is reduced (#218). So does
+    // a smart filter being edited: the smart object renders again from its source (#6324).
+    let (run_k, reduce_k) = if command == "type.warpText" || command == SMART_FILTER_SET_PARAMS { (1, k) } else { (k, 1) };
     let proxy = crate::proxy::proxy_document(doc, run_k);
     let mut s = photocraft_engine::Session::new();
     s.set_inline_job_ctx(cancel.cloned());
@@ -2309,8 +2317,7 @@ mod tests {
         app.run("tools.setColors", json!({"foreground": "#ff0000"})).unwrap();
         let id = open(&mut app, REPLACE_COLOR).unwrap();
         assert_eq!(app.ui.dialogs.last().unwrap().fields["color"], json!("#ff0000"), "the dialog starts from the foreground colour");
-        assert!(!color_eyedropper_armed(&app));
-        app.ui.dialog_mut(id).unwrap().fields.insert(COLOR_EYEDROPPER.into(), json!(true));
+        // #6279: armed as it opens, so the first click on the image samples.
         assert!(color_eyedropper_armed(&app));
         assert!(color_eyedropper_sample(&mut app, 4.0, 4.0));
         assert_eq!(app.ui.dialogs.last().unwrap().fields["color"], json!("#00ff00"));
@@ -2326,7 +2333,7 @@ mod tests {
         assert!(!color_eyedropper_sample(&mut app, 4.0, 4.0));
     }
 
-    /// #4143: the eyedropper button arms and disarms the canvas picker.
+    /// #4143: the eyedropper button disarms and re-arms the canvas picker (#6279: it opens armed).
     #[test]
     fn replace_color_dialog_arms_the_eyedropper_button() {
         use egui_kittest::Harness;
@@ -2339,12 +2346,13 @@ mod tests {
         PhotocraftApp::setup_context(&h.ctx, crate::theme::ThemeKind::ALL[0]);
         open(h.state_mut(), REPLACE_COLOR).unwrap();
         h.run_steps(3);
-        h.get_by_label("Pick Color From Image").click();
-        h.run_steps(2);
-        assert!(color_eyedropper_armed(h.state()));
+        assert!(color_eyedropper_armed(h.state()), "armed as the dialog opens");
         h.get_by_label("Pick Color From Image").click();
         h.run_steps(2);
         assert!(!color_eyedropper_armed(h.state()));
+        h.get_by_label("Pick Color From Image").click();
+        h.run_steps(2);
+        assert!(color_eyedropper_armed(h.state()));
     }
 
     /// #4457: Localized Color Clusters and its Range, as in Photoshop's dialog; the sampled point

@@ -3909,9 +3909,27 @@ cameraData	Lens	Lens
 	Quick Styles	Hızlı Stiller
 	Vintage	Vintage
 	High-Contrast B&W	Yüksek Kontrastlı S/B
+	Tropical Sunset	Tropik Gün Batımı
+	Limited time: until 13 December	Sınırlı süre: 13 Aralık'a kadar
 	Cinema	Sinema
 	Pop	Pop
 	Lumen Theme	Lumen Teması
 	Lumen Website (sifg.net)	Lumen Web Sitesi (sifg.net)
 	Based on PhotoCraft (GitHub)	PhotoCraft tabanlı (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Alan:
+	Baseline ("Standard")	Temel ("Standart")
+	Baseline Optimized	Temel Optimize Edilmiş
+	Copy Color as HTML	Rengi HTML Olarak Kopyala
+	Copy Color's Hex Code	Rengin Onaltılık Kodunu Kopyala
+	Format Options	Biçim Seçenekleri
+	Image Options	Görüntü Seçenekleri
+	JPEG Options	JPEG Seçenekleri
+	Out of gamut for printing: click to pick the nearest printable colour	Baskı gamı dışında: en yakın basılabilir rengi seçmek için tıklayın
+	Quality:	Kalite:
+	Scans:	Tarama:
+	Style:	Stil:
+	larger file	daha büyük dosya
+	smaller file	daha küçük dosya

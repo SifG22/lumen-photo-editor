@@ -18,7 +18,7 @@ pub const AUTHOR: &str = "SifG22";
 
 /// Lumen's own version (About, the `.exe` details, the download names). Kept apart from the
 /// workspace version, which follows upstream.
-pub const VERSION: &str = "0.0.3";
+pub const VERSION: &str = "0.0.4";
 
 /// Lumen's website (Help menu, About, start screen).
 pub const WEBSITE: &str = "https://sifg.net";
@@ -74,6 +74,37 @@ pub const LICENSE_TEXT: &str = concat!(include_str!("../../../LICENSE-MIT"), "\n
 /// Text that must name PhotoCraft puts it in through a `{placeholder}`, filled after translation.
 pub fn rebrand(s: &str) -> String {
     s.replace(UPSTREAM_NAME, PRODUCT_NAME)
+}
+
+/// `s` with the upstream product name, as a whole word, replaced by [`PRODUCT_NAME`]: for the
+/// messages that reach people without passing through the catalogs (engine errors in the status
+/// bar and error dialogs, "… has no PhotoCraft equivalent yet"). Part of a file name or a path
+/// (`PhotoCraftData`, `…\PhotoCraft\settings.json`, `PhotoCraft.portable`) is left alone, so
+/// the paths a message quotes stay true.
+pub fn rebrand_message(s: &str) -> std::borrow::Cow<'_, str> {
+    if !s.contains(UPSTREAM_NAME) {
+        return std::borrow::Cow::Borrowed(s);
+    }
+    let word = |c: char| c.is_alphanumeric() || c == '_';
+    let path = |c: char| matches!(c, '/' | '\\' | '-');
+    let mut out = String::with_capacity(s.len() + 16);
+    let mut rest = s;
+    let mut before: Option<char> = None;
+    while let Some(i) = rest.find(UPSTREAM_NAME) {
+        let (head, tail) = rest.split_at(i);
+        out.push_str(head);
+        let prev = head.chars().next_back().or(before);
+        let after = tail.get(UPSTREAM_NAME.len()..).unwrap_or("");
+        let mut next = after.chars();
+        let (n1, n2) = (next.next(), next.next());
+        let in_name =
+            prev.is_some_and(|c| word(c) || path(c) || c == '.') || n1.is_some_and(|c| word(c) || path(c)) || (n1 == Some('.') && n2.is_some_and(word));
+        out.push_str(if in_name { UPSTREAM_NAME } else { PRODUCT_NAME });
+        before = UPSTREAM_NAME.chars().next_back();
+        rest = after;
+    }
+    out.push_str(rest);
+    std::borrow::Cow::Owned(out)
 }
 
 /// UI strings that credit the upstream project by name, so [`rebrand`] leaves their translations
@@ -174,5 +205,24 @@ mod tests {
         assert_eq!(frame(), 1, "uploaded on first use");
         assert_eq!(frame(), 0, "then reused");
         assert!(mark_rect(&ctx).is_some());
+    }
+
+    #[test]
+    fn messages_name_lumen_but_keep_paths_and_file_names() {
+        assert_eq!(rebrand_message("Photoshop step \"x\" has no PhotoCraft equivalent yet"), "Photoshop step \"x\" has no Lumen Photo Editor equivalent yet");
+        assert_eq!(rebrand_message("isn't included in this build of PhotoCraft"), "isn't included in this build of Lumen Photo Editor");
+        assert_eq!(rebrand_message("isn't implemented in PhotoCraft: it is kept"), "isn't implemented in Lumen Photo Editor: it is kept");
+        assert_eq!(rebrand_message("PhotoCraft's tip, PhotoCraft."), "Lumen Photo Editor's tip, Lumen Photo Editor.");
+        for kept in [
+            r"C:\Users\x\AppData\Roaming\PhotoCraft\settings.json",
+            "/home/x/.config/PhotoCraft/prefs",
+            r"D:\Lumen\PhotoCraftData\cache",
+            "marker PhotoCraft.portable found",
+            "photocraft-cli and PhotoCraft-dev",
+            "no product name here",
+        ] {
+            assert_eq!(rebrand_message(kept), kept);
+        }
+        assert!(matches!(rebrand_message("plain"), std::borrow::Cow::Borrowed(_)));
     }
 }

@@ -3879,9 +3879,27 @@ curves	Smooth	Εξομάλυνση
 	Quick Styles	Γρήγορα στυλ
 	Vintage	Vintage
 	High-Contrast B&W	Ασπρόμαυρο υψηλής αντίθεσης
+	Tropical Sunset	Τροπικό ηλιοβασίλεμα
+	Limited time: until 13 December	Για περιορισμένο χρόνο: έως 13 Δεκεμβρίου
 	Cinema	Σινεμά
 	Pop	Pop
 	Lumen Theme	Θέμα Lumen
 	Lumen Website (sifg.net)	Ιστότοπος Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	Βασισμένο στο PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Περιοχή:
+	Baseline ("Standard")	Βασικό («Τυπικό»)
+	Baseline Optimized	Βασικό βελτιστοποιημένο
+	Copy Color as HTML	Αντιγραφή χρώματος ως HTML
+	Copy Color's Hex Code	Αντιγραφή δεκαεξαδικού κωδικού χρώματος
+	Format Options	Επιλογές μορφής
+	Image Options	Επιλογές εικόνας
+	JPEG Options	Επιλογές JPEG
+	Out of gamut for printing: click to pick the nearest printable colour	Εκτός γκάμας εκτύπωσης: κάντε κλικ για να επιλέξετε το πλησιέστερο εκτυπώσιμο χρώμα
+	Quality:	Ποιότητα:
+	Scans:	Σαρώσεις:
+	Style:	Στυλ:
+	larger file	μεγαλύτερο αρχείο
+	smaller file	μικρότερο αρχείο

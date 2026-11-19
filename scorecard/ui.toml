@@ -120,9 +120,9 @@ note = "saturation_track/lightness_track (adjust_editors.rs): grey -> the hue an
 [[item]]
 id = "UI-217-17"
 target = "Color panel: wheel plus RGB/HSB/CMYK/Lab/Gray/Web slider modes; resizes with its group"
-status = "missing"
+status = "done"
 issue = 217
-note = "panels.rs:1837 single field + hex/RGB readout"
+note = "color_panel_modes.rs (2026-11-19, Lumen): panel menu Hue Cube, Color Wheel, Grayscale/RGB/HSB/CMYK/Lab/Web Color sliders with dynamic tracks, colour ramp with white/black ends, out-of-gamut warning, Copy Color as HTML / Hex Code; the mode persists with the panel layout"
 
 [[item]]
 id = "UI-217-18"

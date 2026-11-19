@@ -226,9 +226,9 @@ fn about_window(tab: &str, table: bool) -> (f32, f32, f32) {
 
 #[test]
 fn about_ends_where_its_content_does() {
-    for tab in ["about"] {
-        let (_, ok, lowest) = about_window(tab, false);
-        assert!(lowest > f32::MIN, "{tab}: nothing above OK");
-        assert!(ok - lowest < 40.0, "{tab}: {} pt of blank space above OK", ok - lowest);
-    }
+    // Lumen's About window has one tab.
+    let tab = "about";
+    let (_, ok, lowest) = about_window(tab, false);
+    assert!(lowest > f32::MIN, "{tab}: nothing above OK");
+    assert!(ok - lowest < 40.0, "{tab}: {} pt of blank space above OK", ok - lowest);
 }

@@ -4252,9 +4252,27 @@ shape	Appearance	Izgled
 	Quick Styles	Brzi stilovi
 	Vintage	Vintidž
 	High-Contrast B&W	Kontrastno crno-belo
+	Tropical Sunset	Tropski zalazak sunca
+	Limited time: until 13 December	Ograničeno vreme: do 13. decembra
 	Cinema	Bioskop
 	Pop	Pop
 	Lumen Theme	Lumen tema
 	Lumen Website (sifg.net)	Lumen veb-sajt (sifg.net)
 	Based on PhotoCraft (GitHub)	Zasnovano na PhotoCraft-u (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Oblast:
+	Baseline ("Standard")	Osnovni („Standardni“)
+	Baseline Optimized	Osnovni optimizovani
+	Copy Color as HTML	Kopiraj boju kao HTML
+	Copy Color's Hex Code	Kopiraj heksadecimalni kôd boje
+	Format Options	Opcije formata
+	Image Options	Opcije slike
+	JPEG Options	JPEG opcije
+	Out of gamut for printing: click to pick the nearest printable colour	Izvan gamuta za štampu: kliknite da izaberete najbližu boju koja može da se odštampa
+	Quality:	Kvalitet:
+	Scans:	Prolaza:
+	Style:	Stil:
+	larger file	veća datoteka
+	smaller file	manja datoteka

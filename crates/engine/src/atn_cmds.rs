@@ -28,7 +28,8 @@ pub const PHOTOSHOP_STEP: &str = "actions.photoshopStep";
 /// Photoshop's Insert Stop: `{"message", "allowContinue"}`.
 pub const STOP_MESSAGE: &str = "actions.stopMessage";
 /// The set name Save Actions uses for actions that came from no set.
-pub const DEFAULT_SET: &str = "PhotoCraft Actions";
+/// Lumen: the set name of nameless `.atn` imports and of Save Actions with every action.
+pub const DEFAULT_SET: &str = "Lumen Actions";
 
 fn bad(cmd: &str, msg: impl Into<String>) -> EngineError {
     EngineError::BadParams { cmd: cmd.into(), msg: msg.into() }
@@ -3176,6 +3177,7 @@ fn load(s: &mut Session, p: &Value) -> Result<Value> {
 
 fn save(s: &mut Session, p: &Value) -> Result<Value> {
     let cmd = "actions.save";
+    crate::actions_cmds::flush_recording(s)?;
     let skip = match p.get("skipUnsupported") {
         None | Some(Value::Null) => false,
         Some(Value::Bool(b)) => *b,
@@ -3263,7 +3265,7 @@ pub fn specs() -> Vec<CommandSpec> {
             label: "Save Actions…",
             menu: &[],
             shortcut: None,
-            params: r##"{"path":".atn file"? (else the bytes come back as base64 `data`),"set":name? (that set's actions; default: every action, as the set "PhotoCraft Actions"),"action":name|index? (one action),"skipUnsupported":bool=false (leave out steps with no Photoshop equivalent instead of failing)} → {set, actions:[names], steps, bytes, skipped:[{action, step, id}], path|data}"##,
+            params: r##"{"path":".atn file"? (else the bytes come back as base64 `data`),"set":name? (that set's actions; default: every action, as the set "Lumen Actions"),"action":name|index? (one action),"skipUnsupported":bool=false (leave out steps with no Photoshop equivalent instead of failing)} → {set, actions:[names], steps, bytes, skipped:[{action, step, id}], path|data}"##,
             enabled: always,
             run: save,
             journal: false,

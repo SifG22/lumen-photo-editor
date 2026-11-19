@@ -239,7 +239,8 @@ pub fn apply_to_surface(id: &str, params: &Value, surf: &Surface, canvas: Rect) 
         LENS => Some(lens::correct(surf, canvas, &lens_params(id, params, canvas, None).ok()?)),
         WIDE => Some(wideangle::apply(surf, canvas, &wide_params(id, params, None).ok()?, Interp::Bicubic)),
         RAW => Some(camera_raw_surface(surf, canvas, &raw_params(id, params).ok()?)),
-        _ => None,
+        // Lumen's Camera Raw looks (Image › Quick Styles), whose settings aren't stored.
+        _ => crate::lumen_style_cmds::look_surface(id, params, surf, canvas),
     }
 }
 
@@ -266,7 +267,7 @@ fn filterable(s: &Session) -> std::result::Result<(), String> {
     }
 }
 
-fn raw_enabled(s: &Session) -> std::result::Result<(), String> {
+pub(crate) fn raw_enabled(s: &Session) -> std::result::Result<(), String> {
     filterable(s)?;
     let d = s.active().ok_or("no document open")?;
     match d.doc.mode {
@@ -277,7 +278,7 @@ fn raw_enabled(s: &Session) -> std::result::Result<(), String> {
 
 /// Runs `f` on the target layer (pixel layer edited in place inside the selection; smart object
 /// gets a smart filter with `stored` params).
-fn run_filter(s: &mut Session, cmd: &str, label: &str, stored: Value, float_bg: bool, f: &dyn Fn(&Surface, Rect) -> Surface) -> Result<LayerId> {
+pub(crate) fn run_filter(s: &mut Session, cmd: &str, label: &str, stored: Value, float_bg: bool, f: &dyn Fn(&Surface, Rect) -> Surface) -> Result<LayerId> {
     let id = target(s, &stored)?;
     let mut stored = stored;
     if let Value::Object(m) = &mut stored {

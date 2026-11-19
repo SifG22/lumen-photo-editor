@@ -3787,9 +3787,27 @@ navigator	Zoom	Zvětšení
 	Quick Styles	Rychlé styly
 	Vintage	Vintage
 	High-Contrast B&W	Kontrastní černobílá
+	Tropical Sunset	Tropický západ slunce
+	Limited time: until 13 December	Pouze po omezenou dobu: do 13. prosince
 	Cinema	Kino
 	Pop	Pop
 	Lumen Theme	Motiv Lumen
 	Lumen Website (sifg.net)	Web Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	Založeno na PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Oblast:
+	Baseline ("Standard")	Základní („Standardní“)
+	Baseline Optimized	Základní optimalizovaný
+	Copy Color as HTML	Kopírovat barvu jako HTML
+	Copy Color's Hex Code	Kopírovat hexadecimální kód barvy
+	Format Options	Volby formátu
+	Image Options	Volby obrazu
+	JPEG Options	Volby JPEG
+	Out of gamut for printing: click to pick the nearest printable colour	Mimo gamut tisku: klepnutím vyberete nejbližší tisknutelnou barvu
+	Quality:	Kvalita:
+	Scans:	Průchodů:
+	Style:	Styl:
+	larger file	větší soubor
+	smaller file	menší soubor

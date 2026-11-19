@@ -4098,9 +4098,27 @@ cameraRaw	Yellow	Sárga
 	Quick Styles	Gyorsstílusok
 	Vintage	Vintage
 	High-Contrast B&W	Kontrasztos fekete-fehér
+	Tropical Sunset	Trópusi naplemente
+	Limited time: until 13 December	Korlátozott ideig: december 13-ig
 	Cinema	Mozi
 	Pop	Pop
 	Lumen Theme	Lumen téma
 	Lumen Website (sifg.net)	Lumen webhely (sifg.net)
 	Based on PhotoCraft (GitHub)	A PhotoCraft alapján (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Terület:
+	Baseline ("Standard")	Alapvonal („Szabványos”)
+	Baseline Optimized	Optimalizált alapvonal
+	Copy Color as HTML	Szín másolása HTML-ként
+	Copy Color's Hex Code	Szín hexadecimális kódjának másolása
+	Format Options	Formátumbeállítások
+	Image Options	Képbeállítások
+	JPEG Options	JPEG-beállítások
+	Out of gamut for printing: click to pick the nearest printable colour	Nyomtatási színtartományon kívül: kattintson a legközelebbi nyomtatható szín kiválasztásához
+	Quality:	Minőség:
+	Scans:	Menetek:
+	Style:	Stílus:
+	larger file	nagyobb fájl
+	smaller file	kisebb fájl

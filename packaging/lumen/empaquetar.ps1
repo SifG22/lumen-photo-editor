@@ -25,6 +25,12 @@ $version = (Select-String -Path "$root\crates\ui-egui\src\brand.rs" -Pattern 'pu
 if (-not $BaseUrl) { $BaseUrl = "https://github.com/SifG22/lumen-photo-editor/releases/download/v$version" }
 $triple = if ($Arch -eq "arm64") { "aarch64-pc-windows-msvc" } else { "x86_64-pc-windows-msvc" }
 
+# Ajustes privados de los estilos (secrets\lumen-looks.txt, fuera de git; en GitHub, un secreto).
+$looks = Join-Path $root "secrets\lumen-looks.txt"
+if (-not $env:LUMEN_LOOK_TROPICAL_SUNSET -and (Test-Path $looks)) {
+    $env:LUMEN_LOOK_TROPICAL_SUNSET = Get-Content $looks | Where-Object { $_.Trim() -and -not $_.StartsWith("#") } | Select-Object -Last 1
+}
+
 if (-not $NoBuild) {
     Push-Location $root
     try {

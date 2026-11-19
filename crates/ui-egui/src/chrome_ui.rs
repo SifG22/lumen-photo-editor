@@ -191,7 +191,7 @@ fn status_message(app: &PhotocraftApp, ui: &mut egui::Ui, t: &Tokens) {
     let (r, _) = ui.allocate_exact_size(vec2(17.0, 16.0), Sense::hover());
     ui.painter().line_segment([r.center_top(), r.center_bottom()], Stroke::new(1.0, t.separator));
     let is_err = app.ui.status_error || app.ui.status.starts_with("Couldn");
-    ui.label(RichText::new(&app.ui.status).color(if is_err { t.warning } else { t.text_faint }));
+    ui.label(RichText::new(crate::brand::rebrand_message(&app.ui.status)).color(if is_err { t.warning } else { t.text_faint }));
 }
 
 /// Home button at the very start of Photoshop 2026's options bar: toggles the Home (start)
@@ -218,6 +218,25 @@ pub fn undo_redo_buttons(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
             app.ui.status = e;
         }
     }
+}
+
+/// Lumen's limited-time looks as one-click buttons after Undo/Redo, only while they are offered
+/// (`lumen_style_cmds::offered`: this build has the look and its date hasn't passed); greyed out
+/// when the look can't apply (no document, not a pixel layer). Returns whether any was shown.
+pub fn look_buttons(app: &mut PhotocraftApp, ui: &mut egui::Ui) -> bool {
+    use photocraft_engine::lumen_style_cmds::{LOOKS, offered};
+    let mut shown = false;
+    for look in LOOKS.iter().filter(|l| l.until.is_some() && offered(l.id)) {
+        shown = true;
+        let tip = format!("{}\n{}", tl!(look.label), tl!("Limited time: until 13 December"));
+        let enabled = crate::menus::is_enabled(app, look.id);
+        let clicked = ui.add_enabled_ui(enabled, |ui| icons::button(ui, "sun", 26.0, false, &tip)).inner.clicked();
+        if clicked && let Err(e) = crate::menus::invoke(app, &ui.ctx().clone(), look.id, serde_json::json!({})) {
+            app.ui.status = e;
+            app.ui.status_error = true;
+        }
+    }
+    shown
 }
 
 /// Marquee drag end point under the options-bar Style (Normal, Fixed Ratio, Fixed Size) and Shift

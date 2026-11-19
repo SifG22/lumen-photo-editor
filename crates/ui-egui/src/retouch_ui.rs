@@ -126,6 +126,7 @@ pub fn finish_stroke(app: &mut PhotocraftApp, tool: Tool, points: &[[f64; 3]], m
             (if tool == Tool::Healing { "paint.healingBrush" } else { "paint.cloneStamp" }, p)
         }
         Tool::HistoryBrush => ("paint.historyBrush", json!({})),
+        Tool::ArtHistoryBrush => ("paint.artHistoryBrush", json!({"style": o.art_style, "area": o.art_area, "tolerance": o.art_tolerance})),
         Tool::Blur | Tool::Sharpen | Tool::Smudge | Tool::Dodge | Tool::Burn | Tool::Sponge => match dab_params(app, tool) {
             Some(cp) => cp,
             None => return false,
@@ -428,6 +429,25 @@ pub fn draw_source_marker(app: &PhotocraftApp, painter: &egui::Painter, xf: &Vie
     }
 }
 
+/// The Art History Brush's styles as its Style menu lists them (`paint.artHistoryBrush` names).
+pub(crate) fn art_styles() -> Vec<(String, &'static str)> {
+    [
+        ("tightShort", "Tight Short"),
+        ("tightMedium", "Tight Medium"),
+        ("tightLong", "Tight Long"),
+        ("looseMedium", "Loose Medium"),
+        ("looseLong", "Loose Long"),
+        ("dab", "Dab"),
+        ("tightCurl", "Tight Curl"),
+        ("looseCurl", "Loose Curl"),
+        ("tightCurlLong", "Tight Curl Long"),
+        ("looseCurlLong", "Loose Curl Long"),
+    ]
+    .into_iter()
+    .map(|(k, l)| (k.to_string(), l))
+    .collect()
+}
+
 fn opt(ui: &mut egui::Ui, text: &str) {
     let t = Tokens::get(ui.ctx());
     ui.label(egui::RichText::new(tl!(&text)).color(t.text_dim).size(12.0));
@@ -604,7 +624,17 @@ pub fn options_bar(app: &mut PhotocraftApp, ui: &mut egui::Ui, tool: Tool) -> bo
             crate::widgets::value_field(ui, &mut o.cr_tolerance, 0.0..=100.0, "%", 62.0);
             crate::widgets::checkbox(ui, &mut o.cr_anti_alias, tl!("Anti-alias"));
         }
-        Tool::HistoryBrush => opt(ui, "Paints from the document's opening state"),
+        Tool::HistoryBrush => opt(ui, tl!("Paints from the document's opening state")),
+        Tool::ArtHistoryBrush => {
+            // Photoshop's options bar: Style, Area and Tolerance (mode, opacity and the brush come
+            // from the shared brush row).
+            opt(ui, tl!("Style:"));
+            crate::widgets::dropdown(ui, "art-history-style", &mut o.art_style, &art_styles(), 150.0);
+            opt(ui, tl!("Area:"));
+            crate::widgets::value_field(ui, &mut o.art_area, 0.0..=500.0, "px", 62.0);
+            opt(ui, tl!("Tolerance:"));
+            crate::widgets::value_field(ui, &mut o.art_tolerance, 0.0..=100.0, "%", 62.0);
+        }
         Tool::QuickSelection => {
             crate::widgets::checkbox(ui, &mut o.sample_all_layers, tl!("Sample All Layers"));
             crate::widgets::checkbox(ui, &mut o.enhance_edge, tl!("Enhance Edge"));

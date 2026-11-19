@@ -1248,3 +1248,35 @@ fn batch_naming_rejects_outputs_that_replace_inputs_before_processing() {
     assert_eq!(std::fs::read(&first).unwrap(), before[0]);
     assert_eq!(std::fs::read(&second).unwrap(), before[1]);
 }
+
+/// JPEG Options › Format Options through `file.saveACopy` (the shell's Save As replays them too): progressive writes SOF2, the default and
+/// `baseline` write SOF0, and bad values are errors that leave nothing written.
+#[test]
+fn save_a_copy_jpeg_format_options() {
+    let dir = tmp("jpeg-format");
+    let mut s = session(48, 32, 8);
+    s.execute("paint.stroke", json!({"points": [[0, 16], [48, 16]], "size": 12, "color": "#ff7a59"})).unwrap();
+    let sof = |path: &str, m: u8| std::fs::read(path).unwrap().windows(2).any(|w| w == [0xFF, m]);
+    let base = format!("{dir}/base.jpg");
+    s.execute("file.saveACopy", json!({"path": base, "quality": 10})).unwrap();
+    assert!(sof(&base, 0xC0) && !sof(&base, 0xC2));
+    let prog = format!("{dir}/prog.jpg");
+    s.execute("file.saveACopy", json!({"path": prog, "quality": 10, "jpegFormat": "progressive", "scans": 5})).unwrap();
+    assert!(sof(&prog, 0xC2), "progressive");
+    let opt = format!("{dir}/opt.jpg");
+    s.execute("file.saveACopy", json!({"path": opt, "quality": 10, "jpegFormat": "optimized"})).unwrap();
+    assert!(sof(&opt, 0xC0));
+    for (i, bad) in [json!({"jpegFormat": "lossless"}), json!({"jpegFormat": "progressive", "scans": 2}), json!({"jpegFormat": 1}), json!({"scans": "4"})]
+        .into_iter()
+        .enumerate()
+    {
+        let path = format!("{dir}/bad{i}.jpg");
+        let mut p = bad.clone();
+        p["path"] = json!(path);
+        assert!(s.execute("file.saveACopy", p).is_err(), "{bad}");
+        assert!(!std::path::Path::new(&path).exists(), "{bad}: nothing written");
+    }
+    assert_eq!(jpeg_format_param(&json!({}), "t").unwrap(), (None, false));
+    assert_eq!(jpeg_format_param(&json!({"jpegFormat": "progressive"}), "t").unwrap(), (Some(3), true));
+    let _ = std::fs::remove_dir_all(&dir);
+}

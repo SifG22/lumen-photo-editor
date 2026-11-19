@@ -3172,9 +3172,27 @@ curves	Smooth	Haluskan
 	Cool	Sejuk
 	Vintage	Vintage
 	High-Contrast B&W	Hitam & Putih Kontras Tinggi
+	Tropical Sunset	Senja Tropis
+	Limited time: until 13 December	Waktu terbatas: hingga 13 Desember
 	Cinema	Sinema
 	Pop	Pop
 	Lumen Theme	Tema Lumen
 	Lumen Website (sifg.net)	Situs Web Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	Berbasis PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Area:
+	Baseline ("Standard")	Baseline ("Standar")
+	Baseline Optimized	Baseline Dioptimalkan
+	Copy Color as HTML	Salin Warna sebagai HTML
+	Copy Color's Hex Code	Salin Kode Heksa Warna
+	Format Options	Opsi Format
+	Image Options	Opsi Gambar
+	JPEG Options	Opsi JPEG
+	Out of gamut for printing: click to pick the nearest printable colour	Di luar gamut cetak: klik untuk memilih warna cetak terdekat
+	Quality:	Kualitas:
+	Scans:	Pemindaian:
+	Style:	Gaya:
+	larger file	file lebih besar
+	smaller file	file lebih kecil

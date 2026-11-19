@@ -3185,9 +3185,27 @@ curves	Smooth	Lisser
 	Cool	Froid
 	Vintage	Vintage
 	High-Contrast B&W	N&B contrasté
+	Tropical Sunset	Coucher de soleil tropical
+	Limited time: until 13 December	Pour une durée limitée : jusqu'au 13 décembre
 	Cinema	Cinéma
 	Pop	Pop
 	Lumen Theme	Thème Lumen
 	Lumen Website (sifg.net)	Site web de Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	Basé sur PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Zone :
+	Baseline ("Standard")	Ligne de base (« Standard »)
+	Baseline Optimized	Ligne de base optimisée
+	Copy Color as HTML	Copier la couleur au format HTML
+	Copy Color's Hex Code	Copier le code hexadécimal de la couleur
+	Format Options	Options de format
+	Image Options	Options d'image
+	JPEG Options	Options JPEG
+	Out of gamut for printing: click to pick the nearest printable colour	Hors de la gamme d'impression : cliquez pour choisir la couleur imprimable la plus proche
+	Quality:	Qualité :
+	Scans:	Passes :
+	Style:	Style :
+	larger file	fichier plus lourd
+	smaller file	fichier plus léger

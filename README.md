@@ -100,9 +100,9 @@ Las versiones publicadas las compila **GitHub Actions** ([`lumen-release.yml`](.
 
 - El uso de Lumen Photo Editor se rige por los **[términos y condiciones de SifG22](assets/legal/TERMINOS.txt)**.
 - El nombre **Lumen**, **Lumen Photo Editor**, su icono y su marca son de SifG22 y no se pueden usar sin permiso.
-- Lumen Photo Editor está **basado en [PhotoCraft](https://github.com/storytold/photocraft)**, de los autores de PhotoCraft (ArtCraft team), y usa su código bajo la **licencia MIT** ([LICENSE-MIT](LICENSE-MIT), [NOTICE](NOTICE)). ¡Gracias a ese equipo por su trabajo!
+- Lumen Photo Editor está **basado en [PhotoCraft](https://github.com/storytold/photocraft)**, de los autores de PhotoCraft, y usa su código bajo la **licencia MIT** ([LICENSE-MIT](LICENSE-MIT), [NOTICE](NOTICE)). ¡Gracias a ese equipo por su trabajo!
 - Las fuentes, iconos y demás componentes de terceros, con sus licencias, están en [ATTRIBUTION.md](ATTRIBUTION.md). El instalador los incluye en la carpeta `licencias`.
-- Lumen no está afiliado ni respaldado por Adobe ni por el equipo de PhotoCraft/ArtCraft.
+- Lumen no está afiliado ni respaldado por Adobe ni por el equipo de PhotoCraft.
 
 ---
 

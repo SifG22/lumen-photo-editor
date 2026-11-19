@@ -364,6 +364,14 @@ pub(crate) fn invoke_unguarded(app: &mut PhotocraftApp, ctx: &egui::Context, id:
         }
         "file.saveAs" => {
             let tga_bits = crate::targa_options_ui::bits_param(&params, id)?;
+            // A script that gives the JPEG Options answer (`quality`, `jpegFormat`, `scans`)
+            // saves without the prompt, as a recorded step replays.
+            if let Some(path) = params.get("path").and_then(Value::as_str)
+                && crate::jpeg_options_ui::is_jpeg_path(path)
+                && crate::jpeg_options_ui::Choice::from_params(&params, id)?.is_some()
+            {
+                return app.replay_save(id, &params);
+            }
             app.save_as_with(params.get("path").and_then(Value::as_str).map(str::to_string), tga_bits)
         }
         "view.zoomIn" | "view.zoomOut" | "view.fitOnScreen" | "view.actualPixels" => app.run(id, params),
@@ -1042,7 +1050,8 @@ pub fn menu_items(app: &PhotocraftApp) -> Vec<MenuItem> {
         }
     }
     crate::plugin_ui::insert_menu_items(app, &mut items);
-    items.retain(|i| !crate::brand::HIDDEN_MENU_ITEMS.contains(&i.id.as_str()));
+    // Lumen: upstream items it hides, and limited-time looks past their date.
+    items.retain(|i| !crate::brand::HIDDEN_MENU_ITEMS.contains(&i.id.as_str()) && photocraft_engine::lumen_style_cmds::offered(&i.id));
     if let Some(mask) = app.session.active().and_then(|s| s.active_layer.and_then(|id| s.doc.layer(id))).and_then(|l| l.mask.as_ref())
         && let Some(item) = items.iter_mut().find(|i| i.id == "layer.layerMask.enabled")
     {
@@ -1961,6 +1970,44 @@ mod tests {
             assert!(open(&h), "typing after the click keeps Help open ({what})");
             assert!(h.query_all_by_label_contains("› Levels").next().is_some(), "and lists the matches ({what})");
         }
+    }
+
+    /// #5996: a real key press comes as a key and its text. A letter typed into Help › Search is
+    /// text for the field, not a mnemonic: "S" ran System Info and "A" the ArtCraft website.
+    #[test]
+    fn help_search_letters_are_not_mnemonics() {
+        use egui::{Event, Key, Modifiers, PointerButton};
+        use egui_kittest::{Harness, kittest::Queryable};
+        let mut h = Harness::builder().with_size(egui::vec2(1200.0, 800.0)).with_max_steps(64).build_eframe(|cc| {
+            PhotocraftApp::setup_context(&cc.egui_ctx, crate::theme::ThemeKind::ALL[0]);
+            PhotocraftApp::new(photocraft_engine::Session::new(), crate::Services::default())
+        });
+        h.run_steps(4);
+        let help = h.get_by_label("Help").rect().center();
+        h.event(Event::PointerMoved(help));
+        h.run_steps(1);
+        for pressed in [true, false] {
+            h.event(Event::PointerButton { pos: help, button: PointerButton::Primary, pressed, modifiers: Modifiers::NONE });
+            h.run_steps(1);
+        }
+        h.run_steps(3);
+        assert!(h.query_by_label_contains("About ").is_some(), "Help opened (About Lumen / About PhotoCraft)");
+        for c in "DeSelect all".chars() {
+            let key = Key::from_name(&c.to_ascii_uppercase().to_string());
+            if let Some(key) = key {
+                h.event(Event::Key { key, physical_key: Some(key), pressed: true, repeat: false, modifiers: Modifiers::NONE });
+            }
+            h.event(Event::Text(c.to_string()));
+            h.run_steps(1);
+            if let Some(key) = key {
+                h.event(Event::Key { key, physical_key: Some(key), pressed: false, repeat: false, modifiers: Modifiers::NONE });
+            }
+        }
+        h.run_steps(3);
+        assert!(h.query_by_label_contains("About ").is_some(), "typing keeps Help open");
+        let query: String = h.ctx.data(|d| d.get_temp(egui::Id::new("help-menu-search"))).unwrap_or_default();
+        assert_eq!(query, "DeSelect all", "every letter reached the field");
+        assert!(h.state().ui.dialogs.is_empty(), "no menu command ran: {:?}", h.state().ui.dialogs);
     }
 
     #[test]

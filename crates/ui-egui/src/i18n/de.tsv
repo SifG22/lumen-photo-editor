@@ -3182,9 +3182,27 @@ curves	Smooth	Glätten
 	Warm	Warm
 	Vintage	Vintage
 	High-Contrast B&W	Kontrastreiches S/W
+	Tropical Sunset	Tropischer Sonnenuntergang
+	Limited time: until 13 December	Nur für kurze Zeit: bis 13. Dezember
 	Cinema	Kino
 	Pop	Pop
 	Lumen Theme	Lumen-Design
 	Lumen Website (sifg.net)	Lumen-Website (sifg.net)
 	Based on PhotoCraft (GitHub)	Basiert auf PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Bereich:
+	Baseline ("Standard")	Baseline („Standard“)
+	Baseline Optimized	Baseline optimiert
+	Copy Color as HTML	Farbe als HTML kopieren
+	Copy Color's Hex Code	Hex-Code der Farbe kopieren
+	Format Options	Formatoptionen
+	Image Options	Bildoptionen
+	JPEG Options	JPEG-Optionen
+	Out of gamut for printing: click to pick the nearest printable colour	Außerhalb des Druckfarbumfangs: Klicken, um die nächstgelegene druckbare Farbe zu wählen
+	Quality:	Qualität:
+	Scans:	Durchgänge:
+	Style:	Stil:
+	larger file	größere Datei
+	smaller file	kleinere Datei

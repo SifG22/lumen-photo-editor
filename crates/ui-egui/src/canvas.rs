@@ -807,6 +807,7 @@ pub(crate) fn freehand_tool(tool: Tool) -> bool {
             | Tool::Eraser
             | Tool::BackgroundEraser
             | Tool::HistoryBrush
+            | Tool::ArtHistoryBrush
             | Tool::Remove
             | Tool::SpotHealing
             | Tool::Healing
@@ -1704,8 +1705,14 @@ pub(crate) fn ensure_filter_preview(app: &mut PhotocraftApp, idx: usize, ctx: &e
         return None;
     }
     let cmd = d.fields.get("__command")?.as_str()?.to_string();
-    // Previews edit what the command will: a targeted layer mask included (#780).
-    let mut params = app.with_mask_target(&cmd, crate::filter_dialog::params_of(&d.fields));
+    // Previews edit what the command will: a targeted layer mask included (#780), and a smart
+    // filter being edited is replaced in its stack rather than stacked again (#6324).
+    let (cmd, mut params) = if d.fields.contains_key("__smartFilter") {
+        crate::smart_ui::confirm_command(&d.fields, cmd, crate::filter_dialog::params_of(&d.fields))
+    } else {
+        let params = app.with_mask_target(&cmd, crate::filter_dialog::params_of(&d.fields));
+        (cmd, params)
+    };
     // Select and Mask previews in its view mode; holding X shows the image without one.
     if crate::select_mask_view::owns(&d.fields) {
         if crate::select_mask_view::hides_view(&d.fields) {
@@ -2012,9 +2019,12 @@ pub(crate) fn arranged_cells(app: &PhotocraftApp, rect: Rect) -> Option<Vec<(usi
     let idx = app.session.active_index()?;
     let n = app.session.documents().len();
     let cells = crate::view_cmds::cells(&app.ui.view.arrange, rect, n)?;
-    let mut shown: Vec<(usize, Rect)> = (0..n).map(|k| (idx + k) % n).zip(cells).collect();
-    shown.sort_by_key(|(d, _)| *d);
-    Some(shown)
+    // Each document keeps its tile: a click into another one activates it where it is (#6017; it
+    // used to move to the first tile). With more documents than tiles, the shown run stays put
+    // while the active document is in it, and otherwise slides only as far as it must.
+    let start = app.arrange_start.min(n.saturating_sub(cells.len()));
+    let start = if idx < start { idx } else { start.max((idx + 1).saturating_sub(cells.len())) };
+    Some((start..n).zip(cells).collect())
 }
 
 fn documents(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
@@ -2060,6 +2070,7 @@ fn documents(app: &mut PhotocraftApp, ui: &mut egui::Ui) {
     // Window › Arrange: tiled / n-up layouts show several documents side by side; the active one
     // takes input, a click elsewhere activates that document.
     if let Some(shown) = arranged_cells(app, rect) {
+        app.arrange_start = shown.first().map_or(0, |(d, _)| *d);
         let t = crate::theme::Tokens::get(ui.ctx());
         for (d, cell) in shown {
             let cell = cell.shrink(1.0);
@@ -2913,7 +2924,9 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
         crate::monitor_status::check_window(app, &ctx);
     }
     let full = rect;
-    let rect = if primary { crate::rulers::content_rect(app, rect) } else { rect };
+    // Every document view has its rulers, the tiles of Window › Arrange and floating windows
+    // too, as in Photoshop (#6017).
+    let rect = crate::rulers::content_rect(app, rect);
     let doc = app.session.documents()[idx].doc.clone();
     let size = [doc.size.width, doc.size.height];
     if view.doc_size != size {
@@ -4008,7 +4021,9 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
                 {
                     egui::CursorIcon::Crosshair
                 }
-                Tool::Move => egui::CursorIcon::Move,
+                // Photoshop's Move tool keeps the standard arrow pointer (#5646): the movable
+                // layer under it is marked by the hover outline, not by a different cursor.
+                Tool::Move => egui::CursorIcon::Default,
                 // Dragging is handled with the pan itself, above.
                 Tool::Hand => crate::tool_cursor::hand(ui.ctx(), false),
                 Tool::RotateView => crate::rotate_view::cursor(response.dragged()),
@@ -4078,6 +4093,8 @@ pub fn canvas_view(app: &mut PhotocraftApp, ui: &mut egui::Ui, idx: usize, rect:
     }
     if primary && app.ui.extras.rulers {
         crate::rulers::draw_rulers(app, ui, full, &xf);
+    } else if app.ui.extras.rulers {
+        crate::rulers::paint_rulers(app, ui, full, &xf, &doc);
     }
     crate::rotate_view::overlay(app, &ctx, &painter, &xf, &mut view, &response);
     if primary {
@@ -5424,6 +5441,7 @@ pub fn tool_event(app: &mut PhotocraftApp, ev: ToolEvent, mods: egui::Modifiers)
             {
                 e.dragging = false;
                 e.resize = None;
+                app.ui.caret_blink_time = app.last_frame_time;
             }
             if tool == Tool::Pen {
                 crate::vector_ui::pen_up(app);

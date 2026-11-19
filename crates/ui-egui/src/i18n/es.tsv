@@ -2821,7 +2821,7 @@ curves	Smooth	Suavizar
 	Hand	Mano
 	Sampler	Muestreador
 	Magnetic Lasso	Lazo magnético
-	Art History Brush	Pincel histórico artístico
+	Art History Brush	Pincel de historia artística
 	Spot Healing	Corrección puntual
 	Patch	Parche
 	Content-Aware Move	Mover con detección de contenido
@@ -2969,7 +2969,7 @@ curves	Smooth	Suavizar
 	First Color Readout	Primera lectura de color
 	Second Color Readout	Segunda lectura de color
 	Actual Color	Color real
-	Grayscale Slider	Regulador de escala de grises
+	Grayscale Slider	Deslizador de escala de grises
 	Web Color	Color web
 	HSB Color	Color HSB
 	Total Ink	Tinta total
@@ -4141,9 +4141,49 @@ navigator	Zoom	Zoom
 	Quick Styles	Estilos rápidos
 	Vintage	Vintage
 	High-Contrast B&W	B/N intenso
+	Tropical Sunset	Atardecer tropical
+	Limited time: until 13 December	Por tiempo limitado: hasta el 13 de diciembre
 	Cinema	Cine
 	Pop	Pop
 	Lumen Theme	Tema Lumen
 	Lumen Website (sifg.net)	Web de Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	Basado en PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# Color panel modes (Lumen)
+	Hue Cube	Cubo de tono
+	Color Wheel	Rueda de color
+	RGB Sliders	Deslizadores RGB
+	HSB Sliders	Deslizadores HSB
+	CMYK Sliders	Deslizadores CMYK
+	Lab Sliders	Deslizadores Lab
+	Web Color Sliders	Deslizadores de colores web
+	Copy Color as HTML	Copiar color como HTML
+	Copy Color's Hex Code	Copiar código hexadecimal del color
+	Out of gamut for printing: click to pick the nearest printable colour	Fuera de gama de impresión: haz clic para elegir el color imprimible más cercano
+
+# Art History Brush tool (Lumen)
+	Art History Brush Tool	Herramienta Pincel de historia artística
+	Style:	Estilo:
+	Area:	Área:
+	Tight Short	Compacto corto
+	Tight Medium	Compacto medio
+	Tight Long	Compacto largo
+	Loose Medium	Suelto medio
+	Loose Long	Suelto largo
+	Dab	Toque
+	Tight Curl	Rizo compacto
+	Loose Curl	Rizo suelto
+	Tight Curl Long	Rizo compacto largo
+	Loose Curl Long	Rizo suelto largo
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Baseline ("Standard")	Línea de base («Estándar»)
+	Baseline Optimized	Línea de base optimizada
+	Format Options	Opciones de formato
+	Image Options	Opciones de imagen
+	JPEG Options	Opciones de JPEG
+	Quality:	Calidad:
+	Scans:	Pasadas:
+	larger file	archivo más grande
+	smaller file	archivo más pequeño

@@ -2781,9 +2781,27 @@ curves	Smooth	平滑
 	Cool	冷色
 	Vintage	復古
 	High-Contrast B&W	高對比黑白
+	Tropical Sunset	熱帶日落
+	Limited time: until 13 December	限時：至 12 月 13 日
 	Cinema	電影
 	Pop	流行
 	Lumen Theme	Lumen 主題
 	Lumen Website (sifg.net)	Lumen 網站 (sifg.net)
 	Based on PhotoCraft (GitHub)	基於 PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	區域：
+	Baseline ("Standard")	基線（「標準」）
+	Baseline Optimized	基線（最佳化）
+	Copy Color as HTML	將顏色拷貝為 HTML
+	Copy Color's Hex Code	拷貝顏色的十六進位碼
+	Format Options	格式選項
+	Image Options	影像選項
+	JPEG Options	JPEG 選項
+	Out of gamut for printing: click to pick the nearest printable colour	超出列印色域：按一下以選擇最接近的可列印顏色
+	Quality:	品質：
+	Scans:	掃描次數：
+	Style:	樣式：
+	larger file	檔案較大
+	smaller file	檔案較小

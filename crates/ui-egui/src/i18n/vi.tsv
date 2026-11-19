@@ -3665,9 +3665,27 @@ curves	Smooth	Làm mượt
 	Quick Styles	Kiểu nhanh
 	Vintage	Cổ điển
 	High-Contrast B&W	Đen trắng tương phản cao
+	Tropical Sunset	Hoàng hôn nhiệt đới
+	Limited time: until 13 December	Thời gian có hạn: đến hết 13 tháng 12
 	Cinema	Điện ảnh
 	Pop	Pop
 	Lumen Theme	Chủ đề Lumen
 	Lumen Website (sifg.net)	Trang web Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	Dựa trên PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Vùng:
+	Baseline ("Standard")	Cơ bản ("Tiêu chuẩn")
+	Baseline Optimized	Cơ bản tối ưu
+	Copy Color as HTML	Sao chép màu dạng HTML
+	Copy Color's Hex Code	Sao chép mã hex của màu
+	Format Options	Tùy chọn định dạng
+	Image Options	Tùy chọn hình ảnh
+	JPEG Options	Tùy chọn JPEG
+	Out of gamut for printing: click to pick the nearest printable colour	Nằm ngoài gam màu in: bấm để chọn màu in được gần nhất
+	Quality:	Chất lượng:
+	Scans:	Số lượt quét:
+	Style:	Kiểu:
+	larger file	tệp lớn hơn
+	smaller file	tệp nhỏ hơn

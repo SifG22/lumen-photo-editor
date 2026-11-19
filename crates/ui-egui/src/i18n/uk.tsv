@@ -3878,9 +3878,27 @@ curves	Smooth	Згладити
 	Quick Styles	Швидкі стилі
 	Vintage	Вінтаж
 	High-Contrast B&W	Контрастне Ч/Б
+	Tropical Sunset	Тропічний захід сонця
+	Limited time: until 13 December	Обмежений час: до 13 грудня
 	Cinema	Кіно
 	Pop	Поп
 	Lumen Theme	Тема Lumen
 	Lumen Website (sifg.net)	Сайт Lumen (sifg.net)
 	Based on PhotoCraft (GitHub)	На основі PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Область:
+	Baseline ("Standard")	Базовий («стандартний»)
+	Baseline Optimized	Базовий оптимізований
+	Copy Color as HTML	Копіювати колір як HTML
+	Copy Color's Hex Code	Копіювати шістнадцятковий код кольору
+	Format Options	Параметри формату
+	Image Options	Параметри зображення
+	JPEG Options	Параметри JPEG
+	Out of gamut for printing: click to pick the nearest printable colour	Поза кольоровим охопленням друку: клацніть, щоб вибрати найближчий друкований колір
+	Quality:	Якість:
+	Scans:	Проходів:
+	Style:	Стиль:
+	larger file	більший файл
+	smaller file	менший файл

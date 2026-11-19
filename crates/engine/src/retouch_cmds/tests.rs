@@ -2054,3 +2054,109 @@ fn periodic_clone_interior_matches_ordinary_brush_masks_and_transparency() {
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Art History Brush
+// ---------------------------------------------------------------------------------------------
+
+/// A layer painted with a texture (state 1), then filled flat blue: the Art History Brush paints
+/// the texture's colours back in strokes.
+fn art_session(depth: u64) -> Session {
+    let mut s = session(60, 40, depth, "rgb");
+    paint_layer(&mut s, texture);
+    s.execute("edit.fill", json!({"color": "#0000ff"})).unwrap();
+    s
+}
+
+#[test]
+fn art_history_brush_paints_strokes_of_the_source_state() {
+    for depth in [8u64, 16, 32] {
+        let mut s = art_session(depth);
+        let r = s
+            .execute("paint.artHistoryBrush", json!({"points": [[30, 20]], "size": 6, "hardness": 100, "state": 1, "area": 30, "style": "tightMedium"}))
+            .unwrap();
+        assert!(r["strokes"].as_u64().unwrap() > 0, "depth {depth}: {r}");
+        // Pixels around the dab now carry the texture's colours (red ~0.3–0.5), not blue.
+        let mut changed = 0;
+        for y in 5..35 {
+            for x in 15..45 {
+                let p = rgba(&s, x, y);
+                // Well covered (the texture's blue is ~0.45): its red is the texture's too.
+                if p[2] < 0.5 {
+                    assert!(p[0] > 0.25 && p[0] < 0.7, "depth {depth}: ({x},{y}) {p:?}");
+                    changed += 1;
+                }
+            }
+        }
+        assert!(changed > 20, "depth {depth}: only {changed} pixels painted");
+        // Far from the area, the layer is still blue.
+        assert!(rgba(&s, 2, 2)[2] > 0.99);
+        assert_eq!(s.active().unwrap().history.undo_label(), Some("Art History Brush"));
+    }
+}
+
+#[test]
+fn art_history_brush_is_deterministic_and_the_seed_changes_it() {
+    let run = |seed: Option<u64>| {
+        let mut s = art_session(8);
+        let mut p = json!({"points": [[20, 20], [40, 20]], "size": 5, "state": 1, "area": 20, "style": "looseCurl"});
+        if let Some(v) = seed {
+            p["seed"] = json!(v);
+        }
+        s.execute("paint.artHistoryBrush", p).unwrap();
+        let b = Rect::new(0, 0, 60, 40);
+        active_layer(&s).surface().unwrap().read_region(b)
+    };
+    assert_eq!(run(None), run(None), "the same stroke paints the same strokes");
+    assert_ne!(run(Some(1)), run(Some(2)), "another seed scatters them differently");
+}
+
+#[test]
+fn art_history_brush_tolerance_skips_unchanged_pixels() {
+    // Nothing differs from the source (state 0 is the white Open snapshot and the layer is white):
+    // full tolerance paints nothing.
+    let mut s = session(40, 40, 8, "rgb");
+    let r = s.execute("paint.artHistoryBrush", json!({"points": [[20, 20]], "size": 6, "state": 0, "tolerance": 100, "area": 20})).unwrap();
+    assert_eq!(r["strokes"], json!(0));
+    // Zero tolerance paints even where the pixels match.
+    let r = s.execute("paint.artHistoryBrush", json!({"points": [[20, 20]], "size": 6, "state": 0, "tolerance": 0, "area": 20})).unwrap();
+    assert!(r["strokes"].as_u64().unwrap() > 0);
+}
+
+#[test]
+fn art_history_brush_every_style_paints_and_bad_params_are_errors() {
+    for (_, name) in super::art_history::Style::ALL {
+        let mut s = art_session(8);
+        let r = s.execute("paint.artHistoryBrush", json!({"points": [[30, 20]], "size": 4, "state": 1, "style": name})).unwrap();
+        assert!(r["strokes"].as_u64().unwrap() > 0, "{name}: {r}");
+    }
+    let mut s = art_session(8);
+    for bad in [
+        json!({"points": [[30, 20]], "style": "bogus"}),
+        json!({"points": [[30, 20]], "area": -1}),
+        json!({"points": [[30, 20]], "area": 9000}),
+        json!({"points": [[30, 20]], "tolerance": 101}),
+        json!({"points": [[30, 20]], "seed": "x"}),
+        json!({"points": [[30, 20]], "state": 99}),
+        json!({"points": []}),
+        json!({}),
+    ] {
+        assert!(s.execute("paint.artHistoryBrush", bad.clone()).is_err(), "{bad}");
+    }
+    // A huge brush and area on a tiny canvas stays bounded and succeeds.
+    let r = s.execute("paint.artHistoryBrush", json!({"points": [[30, 20], [31, 20]], "size": 4000, "state": 1, "area": 500, "style": "looseCurlLong"}));
+    assert!(r.is_ok(), "{r:?}");
+}
+
+#[test]
+fn art_history_brush_needs_a_pixel_layer_and_respects_the_selection() {
+    assert!(!Session::new().is_enabled("paint.artHistoryBrush"));
+    let mut s = art_session(8);
+    s.execute("select.rect", json!({"x": 0, "y": 0, "width": 30, "height": 40})).unwrap();
+    s.execute("paint.artHistoryBrush", json!({"points": [[30, 20]], "size": 6, "state": 1, "area": 40})).unwrap();
+    for y in 0..40 {
+        for x in 31..60 {
+            assert!(rgba(&s, x, y)[2] > 0.99, "({x},{y}) outside the selection changed");
+        }
+    }
+}

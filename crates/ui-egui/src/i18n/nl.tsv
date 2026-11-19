@@ -3939,9 +3939,27 @@ curves	Smooth	Vloeiend maken
 	Quick Styles	Snelle stijlen
 	Vintage	Vintage
 	High-Contrast B&W	Contrastrijk zwart-wit
+	Tropical Sunset	Tropische zonsondergang
+	Limited time: until 13 December	Tijdelijk: tot 13 december
 	Cinema	Cinema
 	Pop	Pop
 	Lumen Theme	Lumen-thema
 	Lumen Website (sifg.net)	Lumen-website (sifg.net)
 	Based on PhotoCraft (GitHub)	Gebaseerd op PhotoCraft (GitHub)
 	Lumen	Lumen
+
+# JPEG Options, Color panel and Art History Brush (Lumen)
+	Area:	Gebied:
+	Baseline ("Standard")	Basislijn ('Standaard')
+	Baseline Optimized	Basislijn geoptimaliseerd
+	Copy Color as HTML	Kleur kopiëren als HTML
+	Copy Color's Hex Code	Hexcode van kleur kopiëren
+	Format Options	Indelingsopties
+	Image Options	Afbeeldingsopties
+	JPEG Options	JPEG-opties
+	Out of gamut for printing: click to pick the nearest printable colour	Buiten het afdrukgamma: klik om de dichtstbijzijnde afdrukbare kleur te kiezen
+	Quality:	Kwaliteit:
+	Scans:	Scans:
+	Style:	Stijl:
+	larger file	groter bestand
+	smaller file	kleiner bestand

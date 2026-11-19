@@ -37,6 +37,9 @@ jobs:
         env:
           PHOTOCRAFT_REQUIRE_WINRES: "1"
           PHOTOCRAFT_BUILD_SHA: ${{ github.sha }}
+          # Ajustes privados del estilo Atardecer tropical (Imagen › Estilos rápidos): un secreto
+          # del repositorio, nunca en el código. Sin él, la versión sale sin ese estilo.
+          LUMEN_LOOK_TROPICAL_SUNSET: ${{ secrets.LUMEN_LOOK_TROPICAL_SUNSET }}
         run: |
           $env:PHOTOCRAFT_BUILD_DATE = (Get-Date -Format "yyyy-MM-dd")
           cargo build --release -p photocraft --target ${{ matrix.triple }}
@@ -47,6 +50,13 @@ jobs:
         run: |
           packaging/lumen/empaquetar.ps1 -Arch ${{ matrix.arch }} -NoBuild -Instalador -BaseUrl "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}"
           Move-Item dist/latest.json dist/latest-${{ matrix.arch }}.json
+      - name: Instalador universal
+        # Detecta x64 o ARM64 y descarga siempre la ultima version (no cambia entre versiones).
+        if: matrix.arch == 'x64'
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DOutDir=..\..\dist packaging/lumen/lumen-web.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup ha fallado" }
       - uses: actions/upload-artifact@v4
         with:
           name: lumen-windows-${{ matrix.arch }}
@@ -54,6 +64,7 @@ jobs:
             dist/*.zip*
             dist/Lumen-Setup-*
             dist/latest-*.json
+            dist/Lumen-Instalador.exe
 
   release:
     needs: windows
@@ -83,4 +94,4 @@ jobs:
         run: |
           gh release create "${GITHUB_REF_NAME}" dist/* --repo "${GITHUB_REPOSITORY}" \
             --title "Lumen ${GITHUB_REF_NAME}" \
-            --notes "Lumen ${GITHUB_REF_NAME} para Windows, por SifG22 (https://sifg.net). Descarga el instalador (Lumen-Setup) de tu PC: x64 (la mayoría) o arm64 (Surface Pro X, Snapdragon). El ZIP es la versión portable, sin instalar. Basado en PhotoCraft (https://github.com/storytold/photocraft), licencia MIT."
+            --notes "Lumen ${GITHUB_REF_NAME} para Windows, por SifG22 (https://sifg.net). Lo mas facil: Lumen-Instalador.exe (detecta tu PC y baja siempre la ultima version). O el instalador (Lumen-Setup) de tu PC: x64 (la mayoría) o arm64 (Surface Pro X, Snapdragon). El ZIP es la versión portable, sin instalar. Basado en PhotoCraft (https://github.com/storytold/photocraft), licencia MIT."

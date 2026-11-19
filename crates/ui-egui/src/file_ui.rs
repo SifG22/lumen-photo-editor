@@ -724,9 +724,6 @@ pub fn open_print(app: &mut PhotocraftApp) -> u64 {
     let mut f = Map::new();
     f.insert("__print".into(), json!(true));
     f.insert("__label".into(), json!("PhotoCraft Print Settings"));
-    // Asked once per opening: the Printer menu lists what the spooler knows now.
-    let printers = app.session.execute("file.printers", json!({})).unwrap_or_default();
-    f.insert("__systemPrinters".into(), printers["printers"].clone());
     if let Some(Value::Object(m)) = app.session.file_menu.last_print.clone() {
         f.extend(m);
     }
@@ -755,32 +752,184 @@ pub fn open_print(app: &mut PhotocraftApp) -> u64 {
     ] {
         f.entry(k.to_string()).or_insert(v);
     }
-    // Windows: the system's printers, and the paper from the chosen printer's driver settings.
-    if let Ok(list) = craft_print::rgb::printers() {
-        f.insert("__printers".into(), json!(list.iter().map(|p| p.name.clone()).collect::<Vec<_>>()));
-        let known = |n: &str| list.iter().any(|p| p.name == n);
-        if !known(&s(&f, "printer", "")) {
-            let fallback = list.iter().find(|p| p.default).or(list.first()).map(|p| p.name.clone()).unwrap_or_default();
-            f.insert("printer".into(), json!(fallback));
-            f.remove("printerSettings");
+    driver_pages::refresh();
+    // The Printer menu lists what the spooler knows: the last list at once, refreshed in the
+    // background for the next opening; the first time, the menu fills in when the list arrives.
+    match printer_list::request() {
+        Some(list) => apply_printers(&mut f, list.as_deref()),
+        None => {
+            f.insert("__systemPrinters".into(), json!([]));
+            f.insert("__printersPending".into(), json!(true));
         }
     }
     app.ui.open_dialog(DialogKind::Command, f)
 }
 
-/// Takes the paper from the printer's driver settings (Windows), as Photoshop does.
+/// Print's printer fields from the system's printers (`None`: the spooler can't list them):
+/// the Printer menu (`__systemPrinters`), and on Windows the printer names (`__printers`) with a
+/// remembered printer that's gone replaced by the default, whose driver gives the paper.
+fn apply_printers(f: &mut Map<String, Value>, list: Option<&[(String, bool)]>) {
+    let all = list.unwrap_or_default();
+    f.insert("__systemPrinters".into(), json!(all.iter().map(|(n, d)| json!({"name": n, "default": d})).collect::<Vec<_>>()));
+    f.remove("__printersPending");
+    let Some(list) = list else { return };
+    f.insert("__printers".into(), json!(list.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>()));
+    if !list.iter().any(|(n, _)| *n == s(f, "printer", "")) {
+        let fallback = list.iter().find(|p| p.1).or(list.first()).map(|p| p.0.clone()).unwrap_or_default();
+        f.insert("printer".into(), json!(fallback));
+        f.remove("printerSettings");
+    }
+}
+
+/// The system's printers, listed off the UI thread (Lumen). craft-print reads every driver's
+/// capabilities to list them, and some drivers (a sleeping or offline network printer) take
+/// minutes to answer: asked on the UI thread, opening Print froze the window that long.
+mod printer_list {
+    use std::sync::{Mutex, PoisonError};
+
+    /// Each printer's name and whether it's the default; `None` when the spooler can't list them.
+    pub(super) type List = Option<Vec<(String, bool)>>;
+
+    struct Cache {
+        list: Option<List>,
+        busy: bool,
+    }
+
+    static CACHE: Mutex<Cache> = Mutex::new(Cache { list: None, busy: false });
+
+    fn ask() -> List {
+        craft_print::rgb::printers().ok().map(|l| l.iter().map(|p| (p.name.clone(), p.default)).collect())
+    }
+
+    /// The last list (`None` before the first one arrives), asking the spooler again in the
+    /// background unless it is already being asked.
+    pub(super) fn request() -> Option<List> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            Some(ask())
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let mut c = CACHE.lock().unwrap_or_else(PoisonError::into_inner);
+            if !c.busy {
+                c.busy = true;
+                let worker = std::thread::Builder::new().name("printers".into()).spawn(|| {
+                    let list = ask();
+                    let mut c = CACHE.lock().unwrap_or_else(PoisonError::into_inner);
+                    c.list = Some(list);
+                    c.busy = false;
+                });
+                if worker.is_err() {
+                    c.busy = false;
+                    c.list = Some(ask());
+                }
+            }
+            c.list.clone()
+        }
+    }
+
+    /// The last list, without asking again (polled while Print waits for the first one).
+    pub(super) fn cached() -> Option<List> {
+        CACHE.lock().unwrap_or_else(PoisonError::into_inner).list.clone()
+    }
+}
+
+/// Takes the paper from the printer's driver settings (Windows), as Photoshop does. The driver
+/// is asked off the UI thread (some take most of a minute to answer); until it answers,
+/// `__pagePending` names what was asked and [`poll_driver_page`] applies the answer.
 fn driver_page(f: &mut Map<String, Value>) {
-    let printer = s(f, "printer", "");
-    let settings = f.get("printerSettings").and_then(Value::as_str).and_then(|h| craft_print::rgb::DevMode::from_hex(h).ok());
-    match craft_print::rgb::page(&printer, settings.as_ref()) {
-        Ok(pg) => {
-            f.insert("paper".into(), json!([pg.paper.0, pg.paper.1]));
+    let key = (s(f, "printer", ""), f.get("printerSettings").and_then(Value::as_str).map(str::to_string));
+    match driver_pages::request(&key) {
+        Some(page) => apply_page(f, page),
+        None => {
+            f.insert("__pagePending".into(), json!([key.0, key.1]));
+        }
+    }
+}
+
+/// Applies the driver's answer once it has come in (each frame while one is awaited).
+fn poll_driver_page(ctx: &egui::Context, f: &mut Map<String, Value>) {
+    let Some(pending) = f.get("__pagePending").and_then(Value::as_array) else { return };
+    let key = (pending.first().and_then(Value::as_str).unwrap_or_default().to_string(), pending.get(1).and_then(Value::as_str).map(str::to_string));
+    match driver_pages::request(&key) {
+        Some(page) => apply_page(f, page),
+        None => ctx.request_repaint_after(std::time::Duration::from_millis(200)),
+    }
+}
+
+fn apply_page(f: &mut Map<String, Value>, page: driver_pages::Page) {
+    f.remove("__pagePending");
+    match page {
+        Ok(paper) => {
+            f.insert("paper".into(), paper);
             f.insert("orientation".into(), json!("portrait"));
             f.remove("__pageError");
         }
         Err(e) => {
-            f.insert("__pageError".into(), json!(e.to_string()));
+            f.insert("__pageError".into(), json!(e));
         }
+    }
+}
+
+/// The paper each printer's driver gives (for its settings), asked on worker threads and kept
+/// while Print is open; a new opening asks again.
+mod driver_pages {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, PoisonError};
+
+    use serde_json::{Value, json};
+
+    /// The printer and its driver settings (`printerSettings`, hex).
+    pub(super) type Key = (String, Option<String>);
+    /// `[width, height]` in points, or the driver's error.
+    pub(super) type Page = Result<Value, String>;
+
+    /// `None` while the driver is being asked.
+    static PAGES: Mutex<Option<HashMap<Key, Option<Page>>>> = Mutex::new(None);
+
+    fn ask(key: &Key) -> Page {
+        let settings = key.1.as_deref().and_then(|h| craft_print::rgb::DevMode::from_hex(h).ok());
+        craft_print::rgb::page(&key.0, settings.as_ref()).map(|pg| json!([pg.paper.0, pg.paper.1])).map_err(|e| e.to_string())
+    }
+
+    /// The driver's answer for `key`, or `None` while it's being asked (the first call asks).
+    pub(super) fn request(key: &Key) -> Option<Page> {
+        #[cfg(target_arch = "wasm32")]
+        {
+            Some(ask(key))
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let mut pages = PAGES.lock().unwrap_or_else(PoisonError::into_inner);
+            let map = pages.get_or_insert_with(HashMap::new);
+            if let Some(entry) = map.get(key) {
+                return entry.clone();
+            }
+            map.insert(key.clone(), None);
+            let k = key.clone();
+            let worker = std::thread::Builder::new().name("printer-page".into()).spawn(move || {
+                let page = ask(&k);
+                PAGES.lock().unwrap_or_else(PoisonError::into_inner).get_or_insert_with(HashMap::new).insert(k, Some(page));
+            });
+            if worker.is_err() {
+                let page = ask(key);
+                map.insert(key.clone(), Some(page.clone()));
+                return Some(page);
+            }
+            None
+        }
+    }
+
+    /// Forget the answers (not the questions still out), so a new Print asks the drivers again.
+    pub(super) fn refresh() {
+        if let Some(map) = PAGES.lock().unwrap_or_else(PoisonError::into_inner).as_mut() {
+            map.retain(|_, v| v.is_none());
+        }
+    }
+
+    #[cfg(test)]
+    pub(super) fn set_for_test(key: Key, page: Option<Page>) {
+        PAGES.lock().unwrap_or_else(PoisonError::into_inner).get_or_insert_with(HashMap::new).insert(key, page);
     }
 }
 
@@ -865,6 +1014,14 @@ fn print_paper_controls(ui: &mut egui::Ui, f: &mut Map<String, Value>) {
 fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Value>) {
     let t = Tokens::get(ui.ctx());
     let Some(doc) = app.session.active().map(|d| d.doc.clone()) else { return };
+    // The first opening waits for the printer list without blocking the window.
+    if b(f, "__printersPending", false) {
+        match printer_list::cached() {
+            Some(list) => apply_printers(f, list.as_deref()),
+            None => ui.ctx().request_repaint_after(std::time::Duration::from_millis(200)),
+        }
+    }
+    poll_driver_page(ui.ctx(), f);
     // PDF exports and previews retain editable paper on Windows too. Only a real native
     // submission takes its media from the printer; entering that mode refreshes the driver
     // geometry after any export-only paper edits.
@@ -988,6 +1145,8 @@ fn print_body(app: &mut PhotocraftApp, ui: &mut egui::Ui, f: &mut Map<String, Va
                 });
                 let paper = p.get("paper").and_then(Value::as_array).map(|a| (a.first().and_then(Value::as_f64), a.get(1).and_then(Value::as_f64)));
                 let text = match paper {
+                    // The driver hasn't answered yet (`driver_page`).
+                    _ if f.contains_key("__pagePending") => tl!("Reading…").to_string(),
                     Some((Some(w), Some(h))) => format!("{:.0} × {:.0} mm  ·  {}", w / 72.0 * 25.4, h / 72.0 * 25.4, tl!("set in Print Settings…")),
                     _ => String::new(),
                 };
@@ -1405,6 +1564,61 @@ mod tests {
         web_preview::prepare_table(&app, &mut f).unwrap();
         assert!(!f.contains_key("colorTableEdits"));
         assert!(f["colorTable"].as_array().unwrap().len() <= 8);
+    }
+
+    /// Lumen: the printer list arrives from a worker; a remembered printer that's gone falls
+    /// back to the default, and a spooler that can't list printers leaves the Windows fields out.
+    #[test]
+    fn printers_fill_the_print_dialog_when_they_arrive() {
+        let mut f = Map::new();
+        f.insert("__printersPending".into(), json!(true));
+        f.insert("printer".into(), json!("Gone"));
+        f.insert("printerSettings".into(), json!("00ff"));
+        let list = vec![("Office".to_string(), false), ("Home".to_string(), true)];
+        apply_printers(&mut f, Some(&list));
+        assert!(!f.contains_key("__printersPending"));
+        assert_eq!(f["__systemPrinters"], json!([{"name": "Office", "default": false}, {"name": "Home", "default": true}]));
+        assert_eq!(f["__printers"], json!(["Office", "Home"]));
+        assert_eq!(f["printer"], "Home", "the default replaces a printer that's gone");
+        assert!(!f.contains_key("printerSettings"), "its driver settings go with it");
+        // A printer still there is kept.
+        f.insert("printer".into(), json!("Office"));
+        apply_printers(&mut f, Some(&list));
+        assert_eq!(f["printer"], "Office");
+
+        let mut f = Map::new();
+        apply_printers(&mut f, None);
+        assert_eq!(f["__systemPrinters"], json!([]));
+        assert!(!f.contains_key("__printers"));
+    }
+
+    /// Lumen: the driver's paper is asked off the UI thread (an EPSON driver took 48 s): the
+    /// dialog says it's reading, and takes the paper once the answer is in.
+    #[test]
+    fn the_driver_paper_is_applied_when_the_driver_answers() {
+        let key = ("Lumen test printer (slow)".to_string(), None);
+        driver_pages::set_for_test(key.clone(), None);
+        let mut f = Map::new();
+        f.insert("printer".into(), json!(key.0));
+        driver_page(&mut f);
+        assert_eq!(f["__pagePending"], json!([key.0, null]), "still asking: nothing blocks");
+        let ctx = egui::Context::default();
+        poll_driver_page(&ctx, &mut f);
+        assert!(f.contains_key("__pagePending"));
+        driver_pages::set_for_test(key.clone(), Some(Ok(json!([595.0, 842.0]))));
+        poll_driver_page(&ctx, &mut f);
+        assert!(!f.contains_key("__pagePending"));
+        assert_eq!(f["paper"], json!([595.0, 842.0]));
+        assert_eq!(f["orientation"], "portrait");
+
+        let bad = ("Lumen test printer (error)".to_string(), Some("abcd".to_string()));
+        driver_pages::set_for_test(bad.clone(), Some(Err("offline".into())));
+        let mut f = Map::new();
+        f.insert("printer".into(), json!(bad.0));
+        f.insert("printerSettings".into(), json!("abcd"));
+        driver_page(&mut f);
+        assert_eq!(f["__pageError"], "offline");
+        assert!(!f.contains_key("__pagePending"));
     }
 
     #[test]

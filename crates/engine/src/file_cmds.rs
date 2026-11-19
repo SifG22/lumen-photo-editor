@@ -255,6 +255,11 @@ pub(crate) fn import(name: &str, bytes: &[u8]) -> Result<Document> {
 pub(crate) struct SaveOpts {
     /// Photoshop's 0–12 JPEG scale.
     pub quality: Option<f64>,
+    /// JPEG Options › Format Options: progressive in this many scans (`"jpegFormat": "progressive"`,
+    /// `"scans"`), else baseline.
+    pub jpeg_scans: Option<u8>,
+    /// JPEG Options › Baseline Optimized (`"jpegFormat": "optimized"`).
+    pub jpeg_optimize: bool,
     /// TIFF: keep the layers. Off unless a command's params ask (`"tiffLayers": true`).
     pub tiff_layers: bool,
     /// Targa: 24 or 32 bits per pixel (`"tgaBits"`); unset, 32 with an alpha channel or
@@ -271,7 +276,16 @@ pub(crate) struct SaveOpts {
 
 impl Default for SaveOpts {
     fn default() -> Self {
-        SaveOpts { quality: None, tiff_layers: false, tga_bits: None, dpx_bits: None, image_previews: true, psd_maximize_compatibility: true }
+        SaveOpts {
+            quality: None,
+            jpeg_scans: None,
+            jpeg_optimize: false,
+            tiff_layers: false,
+            tga_bits: None,
+            dpx_bits: None,
+            image_previews: true,
+            psd_maximize_compatibility: true,
+        }
     }
 }
 
@@ -282,8 +296,11 @@ impl SaveOpts {
     /// Save As checkbox and its Maximize Compatibility checkbox both start on).
     pub(crate) fn from_params(s: &Session, p: &Value, cmd: &str) -> Result<Self> {
         let file_handling = &s.prefs().file_handling;
+        let (jpeg_scans, jpeg_optimize) = jpeg_format_param(p, cmd)?;
         Ok(SaveOpts {
             quality: f64_param(p, "quality"),
+            jpeg_scans,
+            jpeg_optimize,
             tiff_layers: p.get("tiffLayers").and_then(Value::as_bool).unwrap_or(false),
             tga_bits: tga_bits_param(p, cmd)?,
             dpx_bits: dpx_bits_param(p, cmd)?,
@@ -295,6 +312,30 @@ impl SaveOpts {
     pub(crate) fn or_quality(mut self, q: f64) -> Self {
         self.quality = self.quality.or(Some(q));
         self
+    }
+}
+
+/// JPEG Options' Format Options in `p`: `"jpegFormat": "baseline" | "optimized" | "progressive"`
+/// (default baseline) and, for progressive, `"scans": 3 | 4 | 5` (default 3). Returns the
+/// progressive scan count and whether the Huffman tables are optimised.
+pub fn jpeg_format_param(p: &Value, cmd: &str) -> Result<(Option<u8>, bool)> {
+    let bad = |msg: String| EngineError::BadParams { cmd: cmd.into(), msg };
+    let format = match p.get("jpegFormat") {
+        None | Some(Value::Null) => "baseline",
+        Some(v) => v.as_str().ok_or_else(|| bad(format!("`jpegFormat` must be a string, got {v}")))?,
+    };
+    let scans = match p.get("scans") {
+        None | Some(Value::Null) => 3,
+        Some(v) => match v.as_u64() {
+            Some(n @ 3..=5) => n as u8,
+            _ => return Err(bad(format!("`scans` must be 3, 4 or 5, got {v}"))),
+        },
+    };
+    match format {
+        "baseline" | "standard" => Ok((None, false)),
+        "optimized" => Ok((None, true)),
+        "progressive" => Ok((Some(scans), true)),
+        other => Err(bad(format!("`jpegFormat` must be baseline, optimized or progressive, got `{other}`"))),
     }
 }
 
@@ -346,6 +387,8 @@ pub(crate) fn encode(doc: &Document, path: &str, save: impl Into<SaveOpts>) -> R
     // lossy or lossless as it was), as Photoshop's Save does.
     photocraft_io::apply_file_encoding(doc, &mut opts.encode);
     opts.encode.dpx_bits = save.dpx_bits;
+    opts.encode.jpeg_progressive_scans = save.jpeg_scans;
+    opts.encode.jpeg_optimize = save.jpeg_optimize;
     if let Some(q) = save.quality {
         let q = (q.clamp(0.0, 12.0) / 12.0 * 99.0 + 1.0).round() as u8;
         opts.encode.jpeg_quality = q;
@@ -1594,7 +1637,7 @@ pub fn specs() -> Vec<CommandSpec> {
             "Save a Copy…",
             &["File"],
             Some("Cmd+Alt+S"),
-            r##"{"path":str (format from the extension),"quality":0..12? (JPEG),"layers":bool=true,"tiffLayers":bool=false (TIFF: keep the layers; flat by default),"tgaBits":24|32? (TGA: 32 writes the alpha channel, or else the transparency, as the alpha; unset, 32 with an alpha channel or transparency, else 24),"dpxBits":8|10|12|16? (DPX: bits per sample; unset, 8 for an 8-bit document, else 16)}"##,
+            r##"{"path":str (format from the extension),"quality":0..12? (JPEG),"jpegFormat":"baseline|optimized|progressive"="baseline" (JPEG Options › Format Options),"scans":3|4|5=3 (progressive JPEG),"layers":bool=true,"tiffLayers":bool=false (TIFF: keep the layers; flat by default),"tgaBits":24|32? (TGA: 32 writes the alpha channel, or else the transparency, as the alpha; unset, 32 with an alpha channel or transparency, else 24),"dpxBits":8|10|12|16? (DPX: bits per sample; unset, 8 for an 8-bit document, else 16)}"##,
             native_doc,
             save_a_copy
         ),

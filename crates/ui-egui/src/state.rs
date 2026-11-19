@@ -108,6 +108,8 @@ pub enum Tool {
     CloneStamp,
     PatternStamp,
     HistoryBrush,
+    /// Paints stylised strokes in a history state's colours (Photoshop's Art History Brush).
+    ArtHistoryBrush,
     Blur,
     Sharpen,
     Smudge,
@@ -138,7 +140,7 @@ pub enum Tool {
 }
 
 impl Tool {
-    pub const ALL: [Tool; 67] = [
+    pub const ALL: [Tool; 68] = [
         Tool::Move,
         Tool::Artboard,
         Tool::RectMarquee,
@@ -181,6 +183,7 @@ impl Tool {
         Tool::CloneStamp,
         Tool::PatternStamp,
         Tool::HistoryBrush,
+        Tool::ArtHistoryBrush,
         Tool::Blur,
         Tool::Sharpen,
         Tool::Smudge,
@@ -255,6 +258,7 @@ impl Tool {
             Tool::CloneStamp => "Clone Stamp Tool",
             Tool::PatternStamp => "Pattern Stamp Tool",
             Tool::HistoryBrush => "History Brush Tool",
+            Tool::ArtHistoryBrush => "Art History Brush Tool",
             Tool::Blur => "Blur Tool",
             Tool::Sharpen => "Sharpen Tool",
             Tool::Smudge => "Smudge Tool",
@@ -307,6 +311,7 @@ impl Tool {
                 | Tool::CloneStamp
                 | Tool::PatternStamp
                 | Tool::HistoryBrush
+                | Tool::ArtHistoryBrush
                 | Tool::Blur
                 | Tool::Sharpen
                 | Tool::Smudge
@@ -334,7 +339,7 @@ impl Tool {
             Tool::Zoom => 'Z',
             Tool::Remove | Tool::SpotHealing | Tool::Healing | Tool::Patch | Tool::ContentAwareMove | Tool::RedEye => 'J',
             Tool::CloneStamp | Tool::PatternStamp => 'S',
-            Tool::HistoryBrush => 'Y',
+            Tool::HistoryBrush | Tool::ArtHistoryBrush => 'Y',
             Tool::Blur | Tool::Sharpen | Tool::Smudge => '\0',
             // In the Marquee flyout, but M cycles only the Rectangular and Elliptical Marquee.
             Tool::SingleRowMarquee | Tool::SingleColumnMarquee => '\0',
@@ -670,6 +675,10 @@ pub struct ToolOptions {
     pub cr_limits: String,
     pub cr_tolerance: f32,
     pub cr_anti_alias: bool,
+    /// Art History Brush: style (`paint.artHistoryBrush` names), area in px and tolerance %.
+    pub art_style: String,
+    pub art_area: f32,
+    pub art_tolerance: f32,
     /// Zoom tool › Scrubby Zoom: dragging left/right zooms continuously (else a zoom rectangle).
     #[serde(default = "yes")]
     pub zoom_scrubby: bool,
@@ -847,6 +856,9 @@ impl Default for ToolOptions {
             cr_limits: "contiguous".into(),
             cr_tolerance: 30.0,
             cr_anti_alias: true,
+            art_style: "tightShort".into(),
+            art_area: 50.0,
+            art_tolerance: 0.0,
             zoom_scrubby: true,
             pencil_auto_erase: false,
             brush_clear: false,
@@ -1054,6 +1066,53 @@ pub struct DockTabs {
 pub struct ColorPanelState {
     /// The panel edits the background colour (its chip was clicked), not the foreground.
     pub background: bool,
+    /// What the panel shows, chosen from its panel menu (`color_panel_modes`).
+    pub mode: ColorPanelMode,
+}
+
+/// The Color panel's modes, as Photoshop's panel menu lists them.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ColorPanelMode {
+    /// The saturation/brightness field and hue strip.
+    #[default]
+    HueCube,
+    /// Hue around a disc, saturation out from its centre, a brightness slider under it.
+    ColorWheel,
+    Grayscale,
+    Rgb,
+    Hsb,
+    Cmyk,
+    Lab,
+    /// RGB sliders that snap to the 216 web-safe colours.
+    Web,
+}
+
+impl ColorPanelMode {
+    pub const ALL: [ColorPanelMode; 8] = [
+        ColorPanelMode::HueCube,
+        ColorPanelMode::ColorWheel,
+        ColorPanelMode::Grayscale,
+        ColorPanelMode::Rgb,
+        ColorPanelMode::Hsb,
+        ColorPanelMode::Cmyk,
+        ColorPanelMode::Lab,
+        ColorPanelMode::Web,
+    ];
+
+    /// The panel menu entry (English; translated where it is shown).
+    pub fn label(self) -> &'static str {
+        match self {
+            ColorPanelMode::HueCube => "Hue Cube",
+            ColorPanelMode::ColorWheel => "Color Wheel",
+            ColorPanelMode::Grayscale => "Grayscale Slider",
+            ColorPanelMode::Rgb => "RGB Sliders",
+            ColorPanelMode::Hsb => "HSB Sliders",
+            ColorPanelMode::Cmyk => "CMYK Sliders",
+            ColorPanelMode::Lab => "Lab Sliders",
+            ColorPanelMode::Web => "Web Color Sliders",
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -1073,6 +1132,12 @@ pub struct UiState {
     /// Inline type editing session, if any.
     #[serde(default)]
     pub text_edit: Option<TextEdit>,
+    /// Clock time in seconds when type cursor blink was last reset (e.g. on keypress/caret move).
+    #[serde(skip)]
+    pub caret_blink_time: f64,
+    /// Tool to restore when an inline type edit session commits or cancels (e.g. Move tool, #1132).
+    #[serde(skip)]
+    pub text_edit_return_tool: Option<Tool>,
     /// Ctrl/Cmd Type-tool gesture, exposed to automation but never restored as a held pointer.
     #[serde(default, skip_deserializing)]
     pub type_transform: Option<TypeTransform>,
@@ -1304,6 +1369,8 @@ impl Default for UiState {
             spring: None,
             recent_files: Vec::new(),
             text_edit: None,
+            caret_blink_time: 0.0,
+            text_edit_return_tool: None,
             type_transform: None,
             type_transform_pivot: None,
             cam_transform: None,
@@ -1449,7 +1516,11 @@ mod tests {
         assert!(!Tool::RedEye.is_brushlike());
         assert_eq!(Tool::from_name("patternStamp"), Some(Tool::PatternStamp));
         assert_eq!(Tool::from_name("Pattern Stamp Tool"), Some(Tool::PatternStamp));
-        assert_eq!(Tool::ALL.len(), 67);
+        assert_eq!(Tool::ALL.len(), 68);
+        assert_eq!(Tool::from_name("artHistoryBrush"), Some(Tool::ArtHistoryBrush));
+        assert_eq!(Tool::from_name("Art History Brush Tool"), Some(Tool::ArtHistoryBrush));
+        assert_eq!(Tool::ArtHistoryBrush.key(), 'Y', "it shares the History Brush's key");
+        assert!(Tool::ArtHistoryBrush.is_brushlike());
         assert_eq!(Tool::from_name("Vertical Type Mask Tool"), Some(Tool::VerticalTypeMask));
         assert_eq!(Tool::from_name("addAnchorPoint"), Some(Tool::AddAnchorPoint));
         assert_eq!(Tool::from_name("Delete Anchor Point Tool"), Some(Tool::DeleteAnchorPoint));

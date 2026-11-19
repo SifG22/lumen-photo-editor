@@ -16,7 +16,8 @@ fn has_doc(s: &Session) -> std::result::Result<(), String> {
 }
 
 /// Applies `f` to every pixel surface of a layer tree: content (raster or
-/// cached text/shape/smart pixels), fill caches, and (if `masks`) masks.
+/// cached text/shape/smart pixels), fill caches, stored video frames (current and original),
+/// and (if `masks`) masks.
 pub(crate) fn for_each_surface(layers: &mut [Layer], masks: bool, f: &mut dyn FnMut(&mut Surface, bool)) {
     for l in layers {
         if masks && let Some(m) = &mut l.mask {
@@ -24,6 +25,13 @@ pub(crate) fn for_each_surface(layers: &mut [Layer], masks: bool, f: &mut dyn Fn
         }
         if let Some(fc) = &mut l.fill_cache {
             f(&mut fc.surface, false);
+        }
+        // The displayed content is only a copy of the frame at the playhead; the other frames
+        // would keep the old geometry and depth and come back stale when scrubbing (#4956).
+        if let Some(v) = &mut l.video {
+            for frame in v.frames.iter_mut().chain(v.original_frames.iter_mut().flatten()) {
+                f(frame, false);
+            }
         }
         match &mut l.content {
             LayerContent::Raster(s) => f(s, false),
@@ -103,6 +111,11 @@ pub(crate) fn reidentify_copied_layers(doc: &mut Document) {
             def.layer = new_id;
         }
     }
+    for slice in &mut doc.slices.list {
+        if let Some(&new_id) = slice.layer.and_then(|layer| ids.get(&layer)) {
+            slice.layer = Some(new_id);
+        }
+    }
 }
 
 /// Scale every size and distance of a style by `k` (Image Size's Scale Styles, Layer Style ›
@@ -171,6 +184,12 @@ fn image_size(s: &mut Session, p: &Value) -> Result<Value> {
     let d = s.active().ok_or(EngineError::NoDocument)?;
     let (ow, oh) = (d.doc.size.width, d.doc.size.height);
     let resample = parse_resample(p.get("resample").and_then(Value::as_str).unwrap_or("bicubic"));
+    // An Indexed Color document holds only its colour table's colours, and a save quantises to
+    // them: interpolation showed blends that the saved file didn't have (#6019).
+    let resample = match resample {
+        Method::Filter(_) | Method::Automatic if d.doc.mode == ColorMode::Indexed => Method::Filter(Resample::Nearest),
+        m => m,
+    };
     let mut pw = p.get("width").and_then(Value::as_f64);
     let mut ph = p.get("height").and_then(Value::as_f64);
     // `percent` scales both sides (what a Photoshop action records as "200%"); an explicit side wins.
@@ -907,6 +926,28 @@ mod tests {
         &s.active().unwrap().doc
     }
 
+    /// Document-wide conversions must move every stored video frame, not just the displayed one (#4956).
+    #[test]
+    fn crop_moves_stored_video_frames() {
+        let mut s = session();
+        s.edit("video", |doc, active| {
+            let l = doc.layer_mut(active.unwrap()).unwrap();
+            let frame = l.surface().unwrap().clone();
+            let mut v = photocraft_doc::VideoData::new(vec![frame.clone(), frame.clone()], 24.0);
+            v.original_frames = Some(vec![frame.clone(), frame]);
+            l.video = Some(v);
+            Ok(())
+        })
+        .unwrap();
+        s.execute("image.crop", json!({"x": -10, "y": -5, "width": 60, "height": 30})).unwrap();
+        let v = doc(&s).layers[1].video.as_ref().unwrap();
+        let red = vec![1.0, 0.0, 0.0, 1.0];
+        for frame in v.frames.iter().chain(v.original_frames.iter().flatten()) {
+            assert_eq!(frame.pixel(20, 10), red);
+            assert_eq!(frame.pixel(5, 5)[3], 0.0);
+        }
+    }
+
     /// Resample on with only a new resolution keeps the print size, as Photoshop's Image Size
     /// does (an action's `imageSize` with `Rslt` alone); without `keepPrintSize` only the
     /// resolution changes.
@@ -943,6 +984,27 @@ mod tests {
     /// #1544: 64 x 48 to 300000 x 300000 (90 billion pixels) started allocating resampled bands
     /// without a budget. It is refused before any allocation and the document is untouched; a
     /// change of resolution only, and an ordinary resize, still work.
+    #[test]
+    fn image_size_resamples_indexed_color_with_nearest_neighbor() {
+        let mut s = Session::new();
+        s.execute("file.new", json!({"width": 2, "height": 1})).unwrap();
+        s.execute("edit.fill", json!({"color": "#ff0000"})).unwrap();
+        s.execute("select.rect", json!({"x": 1, "y": 0, "width": 1, "height": 1})).unwrap();
+        s.execute("edit.fill", json!({"color": "#0000ff"})).unwrap();
+        s.execute("select.deselect", json!({})).unwrap();
+        s.execute("image.mode.indexedColor", json!({})).unwrap();
+        for resample in ["bicubic", "automatic", "bilinear", "lanczos", "preserveDetails"] {
+            s.execute("image.imageSize", json!({"width": 8, "resample": resample})).unwrap();
+            let st = s.active().unwrap();
+            let surf = st.doc.layers[0].surface().unwrap();
+            for x in 0..8 {
+                let px = surf.pixel(x, 0);
+                assert!(px[..3] == [1.0, 0.0, 0.0] || px[..3] == [0.0, 0.0, 1.0], "{resample}: no blended colour at x {x}: {px:?}");
+            }
+            s.execute("history.undo", json!({})).unwrap();
+        }
+    }
+
     #[test]
     fn image_size_refuses_a_raster_past_the_budget() {
         let mut s = Session::new();

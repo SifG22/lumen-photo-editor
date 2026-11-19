@@ -54,6 +54,7 @@ pub mod channels_panel;
 pub mod chrome_ui;
 pub mod cjk_fonts;
 pub mod clip_line_ui;
+pub mod color_panel_modes;
 pub mod color_picker_ui;
 pub mod color_range_ui;
 pub mod comps_ui;
@@ -107,6 +108,7 @@ pub mod i18n;
 mod icon_data;
 pub mod icons;
 pub mod jobs_ui;
+pub mod jpeg_options_ui;
 pub mod kys_import;
 pub mod lasso_ui;
 pub(crate) mod last_brush;
@@ -256,6 +258,10 @@ pub type ImportFn = Box<dyn Fn(&str, &[u8], usize) -> Result<(Document, Vec<Stri
 pub struct ExportSettings {
     /// JPEG quality 1–100 (None = codec default).
     pub jpeg_quality: Option<u8>,
+    /// JPEG: progressive in this many scans (JPEG Options › Progressive); `None` is baseline.
+    pub jpeg_progressive_scans: Option<u8>,
+    /// JPEG: optimised Huffman tables (JPEG Options › Baseline Optimized).
+    pub jpeg_optimize: bool,
     /// WebP: lossless (VP8L) rather than lossy (VP8 at [`Self::webp_quality`]).
     pub webp_lossless: bool,
     /// Lossy WebP quality 1–100 (None = codec default).
@@ -287,6 +293,8 @@ impl Default for ExportSettings {
     fn default() -> Self {
         ExportSettings {
             jpeg_quality: None,
+            jpeg_progressive_scans: None,
+            jpeg_optimize: false,
             webp_lossless: true,
             webp_quality: None,
             tiff_layers: true,
@@ -308,6 +316,8 @@ impl ExportSettings {
         if let Some(q) = self.jpeg_quality {
             opts.encode.jpeg_quality = q;
         }
+        opts.encode.jpeg_progressive_scans = self.jpeg_progressive_scans;
+        opts.encode.jpeg_optimize = self.jpeg_optimize;
         opts.encode.webp_lossless = self.webp_lossless;
         if let Some(q) = self.webp_quality {
             opts.encode.webp_quality = q;
@@ -642,6 +652,9 @@ pub struct PhotocraftApp {
     fonts_ready: bool,
     /// Screen rect of the main canvas last frame (for overlays and the navigator).
     pub last_canvas_rect: egui::Rect,
+    /// Window › Arrange: the first document of the shown run of tiles, when there are more
+    /// documents than tiles (`canvas::arranged_cells`).
+    pub(crate) arrange_start: usize,
     /// Physical pixels per egui point of the canvas last frame (`ctx.pixels_per_point`, which
     /// folds in both the display scale and Interface › UI Scale). The canvas maps document pixels
     /// to physical pixels, so point-space geometry divides the view zoom by this (see
@@ -657,7 +670,7 @@ pub struct PhotocraftApp {
     /// The document each of `ui.views` belongs to, as of the last [`Self::sync_views`].
     view_docs: Vec<DocId>,
     pub fps: f32,
-    last_frame_time: f64,
+    pub(crate) last_frame_time: f64,
     thumbs: HashMap<(photocraft_doc::LayerId, u8), (u64, egui::TextureHandle)>,
     /// The document area each layer thumbnail in `thumbs` frames (the canvas, or the layer's
     /// bounds with Clip Thumbnails to Layer Bounds; #4281).
@@ -789,6 +802,10 @@ pub struct PhotocraftApp {
     pub(crate) save_dirs: HashMap<photocraft_doc::DocId, std::path::PathBuf>,
     /// A save to an RGB Targa parked behind the Targa Options prompt (see `targa_options_ui`).
     pub(crate) targa_options: Option<targa_options_ui::Prompt>,
+    /// A save to a JPEG parked behind the JPEG Options prompt (see `jpeg_options_ui`).
+    pub(crate) jpeg_options: Option<jpeg_options_ui::Prompt>,
+    /// The last JPEG Options answer, offered by the next prompt. Session-only.
+    pub(crate) jpeg_last: Option<jpeg_options_ui::Choice>,
     /// Files read but not opened yet: the first waits on its profile prompt, the rest behind it
     /// (see `open_prompt`).
     pub(crate) held_opens: std::collections::VecDeque<open_prompt::Held>,
@@ -861,6 +878,7 @@ impl PhotocraftApp {
             last_window_title: String::new(),
             fonts_ready: false,
             last_canvas_rect: egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(800.0, 600.0)),
+            arrange_start: 0,
             ppp: 1.0,
             drop_canvas_rect: None,
             tab_strip: None,
@@ -931,6 +949,8 @@ impl PhotocraftApp {
             tiff_options: None,
             save_dirs: HashMap::new(),
             targa_options: None,
+            jpeg_options: None,
+            jpeg_last: None,
             held_opens: Default::default(),
             allow_close: false,
             stylus: Default::default(),
@@ -1086,6 +1106,10 @@ impl PhotocraftApp {
             id,
             "layer.vectorMask.add" | "layer.vectorMask.fromPath" | "layer.vectorMask.revealAll" | "layer.vectorMask.hideAll" | "layer.vectorMask.currentPath"
         ) && on_active_layer;
+        // A draft Pen path belongs to the current document, not the one about to be created.
+        if id == "file.new" && self.ui.pen.is_some() {
+            vector_ui::pen_commit(self, false);
+        }
         let r = if id == "actions.play" {
             actions::play(self, &params)
         } else if photocraft_engine::actions_cmds::shell_view_command(id) {
@@ -1370,7 +1394,7 @@ impl PhotocraftApp {
     /// which writes whichever file the action is played on, not as a Save As to a fixed path.
     pub(crate) fn save_dialog_flow(&mut self, path: Option<String>, tga_bits: Option<photocraft_io::TgaBits>, plain_save: bool) -> Result<Value, String> {
         if self.save_options_open() {
-            return Err("Answer TIFF or Targa Options before starting another save".into());
+            return Err("Answer the TIFF, Targa or JPEG Options before starting another save".into());
         }
         // Edit Contents documents save back into their smart object.
         if path.is_none() && self.session.is_enabled("layer.smartObjects.saveContents") {
@@ -1430,6 +1454,12 @@ impl PhotocraftApp {
             targa_options_ui::park(self, path.clone(), copy, "file.saveAs")?;
             return Ok(serde_json::json!({"path": path, "warnings": []}));
         }
+        // A JPEG asks for its quality and format first (JPEG Options), as in Photoshop.
+        if jpeg_options_ui::wants_prompt(self, &path) {
+            let copy = self.saves_copy(&path, None)?;
+            jpeg_options_ui::park(self, path.clone(), copy, "file.saveAs")?;
+            return Ok(serde_json::json!({"path": path, "warnings": []}));
+        }
         // A layered TIFF asks about its layers first (Preferences › File Handling); the save
         // continues from the prompt, which records the step once answered.
         if tiff_options_ui::wants_prompt(self, &path) {
@@ -1442,7 +1472,7 @@ impl PhotocraftApp {
     /// File › Save back to the document's own layered file, recorded as a `file.save` step.
     pub(crate) fn save_in_place(&mut self, path: String) -> Result<Value, String> {
         if self.save_options_open() {
-            return Err("Answer TIFF or Targa Options before starting another save".into());
+            return Err("Answer the TIFF, Targa or JPEG Options before starting another save".into());
         }
         let r = self.write_save(path, None, None)?;
         self.session.journal.push(("file.save".into(), Value::Object(Default::default())));
@@ -1464,6 +1494,18 @@ impl PhotocraftApp {
         Ok(r)
     }
 
+    /// Writes a Save As to a JPEG with a JPEG Options answer and journals it with that answer.
+    fn save_jpeg_step(&mut self, path: String, choice: jpeg_options_ui::Choice) -> Result<Value, String> {
+        let copy = self.saves_copy(&path, None)?;
+        let settings = choice.settings(self.save_settings());
+        let r = match self.write_document(path.clone(), &settings, copy)? {
+            Some((path, warnings)) => serde_json::json!({"path": path, "warnings": warnings}),
+            None => serde_json::json!({"path": path, "warnings": [], "pending": true, "job": self.jobs.last_started.map(|j| j.0)}),
+        };
+        self.session.journal.push(("file.saveAs".into(), choice.step(&path)));
+        Ok(r)
+    }
+
     /// Re-label the Save As just journaled for `path` as File › Save (see [`Self::save_dialog_flow`]).
     fn journal_as_plain_save(&mut self, path: &str) {
         if let Some(last) = self.session.journal.last_mut()
@@ -1479,7 +1521,7 @@ impl PhotocraftApp {
     /// recorded TIFF or Targa answer (if any) stands in for the TIFF or Targa Options prompt.
     pub(crate) fn replay_save(&mut self, id: &str, params: &Value) -> Result<Value, String> {
         if self.save_options_open() {
-            return Err("Answer TIFF or Targa Options before starting another save".into());
+            return Err("Answer the TIFF, Targa or JPEG Options before starting another save".into());
         }
         if id == "file.save" {
             // The file the action is played on: one that holds the whole document, or a flat
@@ -1498,6 +1540,13 @@ impl PhotocraftApp {
         }
         let path = params.get("path").and_then(Value::as_str).filter(|p| !p.is_empty()).ok_or("Save As needs a `path`")?;
         let tga_bits = targa_options_ui::bits_param(params, id)?;
+        // A recorded JPEG Options answer stands in for the prompt.
+        if id == "file.saveAs"
+            && jpeg_options_ui::is_jpeg_path(path)
+            && let Some(choice) = jpeg_options_ui::Choice::from_params(params, id)?
+        {
+            return self.save_jpeg_step(path.to_string(), choice);
+        }
         if id == "file.saveACopy" {
             // A copy: the document keeps its own file and unsaved state, as when recorded (#4373).
             let doc = self.session.active().ok_or("no document")?.doc.clone();
@@ -1634,7 +1683,7 @@ impl PhotocraftApp {
 
     /// TIFF Options or Targa Options is waiting on an answer before a save is written.
     pub(crate) fn save_options_open(&self) -> bool {
-        self.tiff_options.is_some() || self.targa_options.is_some()
+        self.tiff_options.is_some() || self.targa_options.is_some() || self.jpeg_options.is_some()
     }
 
     /// A print worker may still be handing a job to the system queue.
@@ -1956,6 +2005,7 @@ impl eframe::App for PhotocraftApp {
         discard_ui::show(self, &ctx);
         tiff_options_ui::show(self, &ctx);
         targa_options_ui::show(self, &ctx);
+        jpeg_options_ui::show(self, &ctx);
         distort_ui::show(self, &ctx);
         camera_raw_ui::show(self, &ctx);
         wide_angle_ui::show(self, &ctx);

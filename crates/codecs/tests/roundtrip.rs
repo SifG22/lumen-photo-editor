@@ -223,6 +223,35 @@ fn jpeg_quality_affects_size_and_error() {
     assert!(phi > plo, "{phi} <= {plo}");
 }
 
+/// JPEG Options › Format Options: Baseline Optimized and Progressive (3–5 scans) decode, in our
+/// own decoder, to the same image as Baseline; Progressive is a SOF2 file, and the optimised tables
+/// never make it bigger. 4:2:0 baseline files with the encoder's optimised tables used to read back
+/// garbled here (PSNR 5.6 against 24), though libjpeg read them; see `codecs::jpeg::encode`.
+#[test]
+fn jpeg_progressive_and_optimized_decode_like_baseline() {
+    let marker = |b: &[u8], m: u8| b.windows(2).any(|w| w == [0xFF, m]);
+    for (layout, subsample, w, h) in
+        [(ChannelLayout::Rgb, true, 37, 23), (ChannelLayout::Rgb, true, 513, 301), (ChannelLayout::Rgb, false, 64, 64), (ChannelLayout::Gray, true, 64, 64)]
+    {
+        let img = synth(w, h, layout, SampleType::U8, 3, 0.5);
+        let o = |q: EncodeOptions| encode(&img, Format::Jpeg, &EncodeOptions { jpeg_quality: 85, jpeg_chroma_subsampling: subsample, ..q }).unwrap();
+        let base = o(EncodeOptions::default());
+        assert!(marker(&base, 0xC0) && !marker(&base, 0xC2), "{layout:?}: baseline is SOF0");
+        let opt = o(EncodeOptions { jpeg_optimize: true, ..Default::default() });
+        assert!(opt.len() <= base.len(), "{layout:?}: optimised {} > baseline {}", opt.len(), base.len());
+        let p_base = psnr(&img, &decode(&base).unwrap());
+        let p_opt = psnr(&img, &decode(&opt).unwrap());
+        assert!((p_opt - p_base).abs() < 0.01, "{layout:?}: same pixels ({p_opt} vs {p_base})");
+        for scans in [3u8, 4, 5, 0, 200] {
+            let prog = o(EncodeOptions { jpeg_progressive_scans: Some(scans), ..Default::default() });
+            assert!(marker(&prog, 0xC2), "{layout:?} {scans}: progressive is SOF2");
+            let back = decode(&prog).unwrap();
+            assert_eq!(back.dimensions(), img.dimensions());
+            assert!((psnr(&img, &back) - p_base).abs() < 0.5, "{layout:?} {scans}: close to baseline");
+        }
+    }
+}
+
 #[test]
 fn jpeg_444_beats_420_on_chroma_detail() {
     let img = synth(64, 64, ChannelLayout::Rgb, SampleType::U8, 3, 0.5);

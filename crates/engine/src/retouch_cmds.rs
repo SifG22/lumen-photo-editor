@@ -23,6 +23,7 @@ use serde_json::{Value, json};
 use crate::commands::{CommandSpec, blend_from_str};
 use crate::{EngineError, Result, Session};
 
+mod art_history;
 mod content_aware_move;
 mod patch;
 mod pattern_stamp;
@@ -1366,6 +1367,18 @@ pub fn specs() -> Vec<CommandSpec> {
             params: brush_params!(r#","state":index (into history.entries; default 0 = the oldest held state, normally the Open snapshot)"#),
             enabled: has_pixel_layer,
             run: history_brush,
+            journal: true,
+        },
+        CommandSpec {
+            id: "paint.artHistoryBrush",
+            label: "Art History Brush",
+            menu: &[],
+            shortcut: None,
+            params: brush_params!(
+                r#","state":index (as paint.historyBrush; default 0 = the oldest held state),"style":"tightShort|tightMedium|tightLong|looseMedium|looseLong|dab|tightCurl|looseCurl|tightCurlLong|looseCurlLong"="tightShort","area":0..500 px=50 (how far around each dab the strokes reach),"tolerance":0..100 %=0 (paint only where the source differs from the current pixels by at least this much),"seed":int? (default: from the stroke, so a replay paints the same strokes)"#
+            ),
+            enabled: has_pixel_layer,
+            run: art_history::art_history_brush,
             journal: true,
         },
     ]

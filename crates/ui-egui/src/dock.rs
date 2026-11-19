@@ -608,6 +608,10 @@ pub fn show(app: &mut PhotocraftApp, ui: &mut egui::Ui, shown: &[Group], mut bod
                 crate::layer_row_ui::panel_menu(app, ui);
                 ui.separator();
             }
+            if tabs.get(sel) == Some(&"Color") {
+                crate::color_panel_modes::panel_menu(app, ui);
+                ui.separator();
+            }
             if tabs.get(sel) == Some(&"Swatches") {
                 crate::swatches_ui::panel_menu(app, ui);
                 ui.separator();
@@ -803,7 +807,7 @@ fn resize(layout: &mut DockLayout, heights: &[(Group, f32)], i: usize, dy: f32) 
 
 /// What `prefs.panelLayout` holds: the live layout and open panels.
 fn snapshot(app: &PhotocraftApp) -> Value {
-    json!({"workspace": app.ui.workspace, "panels": app.ui.panels, "dockTabs": app.ui.dock_tabs, "dock": app.ui.dock, "timelineOpen": app.ui.timeline.open, "docking": app.ui.docking, "dockingHidden": app.ui.docking_hidden, "dockingCollapsed": app.ui.docking_collapsed})
+    json!({"workspace": app.ui.workspace, "panels": app.ui.panels, "dockTabs": app.ui.dock_tabs, "dock": app.ui.dock, "timelineOpen": app.ui.timeline.open, "docking": app.ui.docking, "dockingHidden": app.ui.docking_hidden, "dockingCollapsed": app.ui.docking_collapsed, "colorPanelMode": app.ui.color_panel.mode})
 }
 
 /// Remember the layout in the preferences once the user lets go of the mouse (Workspace ›
@@ -854,6 +858,9 @@ pub fn apply(app: &mut PhotocraftApp, v: &Value) {
     }
     if let Some(d) = v.get("dock").and_then(|d| serde_json::from_value(d.clone()).ok()) {
         app.ui.dock = d;
+    }
+    if let Some(m) = v.get("colorPanelMode").and_then(|m| serde_json::from_value(m.clone()).ok()) {
+        app.ui.color_panel.mode = m;
     }
     crate::panel_docking::sync_visibility(app);
     app.ui.timeline.open = v.get("timelineOpen").and_then(Value::as_bool).unwrap_or(false);

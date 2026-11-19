@@ -16,8 +16,8 @@ fn main() {
     let lumen_version: u64 = 3 << 16;
     res.set_version_info(winresource::VersionInfo::FILEVERSION, lumen_version)
         .set_version_info(winresource::VersionInfo::PRODUCTVERSION, lumen_version)
-        .set("FileVersion", "0.0.3")
-        .set("ProductVersion", "0.0.3")
+        .set("FileVersion", "0.0.4")
+        .set("ProductVersion", "0.0.4")
         .set("Comments", "https://sifg.net");
     res.set_icon("../../assets/app-icon/photocraft.ico")
         // Lumen for PC is built on PhotoCraft (MIT OR Apache-2.0); its notice stays here.

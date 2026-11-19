@@ -140,6 +140,8 @@ fn save_as_flat_keeps_the_layered_original() {
         let before = identity(&app);
         for flat in ["art.jpg", "art.png"] {
             menus::invoke(&mut app, &ctx, "file.saveAs", json!({"path": flat})).unwrap();
+            // A JPEG asks JPEG Options first.
+            crate::jpeg_options_ui::confirm(&mut app, &ctx);
             assert_eq!(identity(&app), before, "{flat}, layered: {layered}");
         }
         menus::invoke(&mut app, &ctx, "file.save", json!({})).unwrap();
@@ -151,6 +153,7 @@ fn save_as_flat_keeps_the_layered_original() {
     let mut app = app();
     let before = identity(&app);
     app.save_as(Some("flat.jpg".into())).unwrap();
+    crate::jpeg_options_ui::confirm(&mut app, &ctx);
     assert_eq!(identity(&app), before);
 }
 
@@ -162,6 +165,7 @@ fn save_as_flat_retargets_a_flat_document() {
     app.save_as(Some("shot.png".into())).unwrap();
     assert_eq!(app.session.active().unwrap().path.as_deref(), Some("shot.png"));
     app.save_as(Some("shot.jpg".into())).unwrap();
+    crate::jpeg_options_ui::confirm(&mut app, &egui::Context::default());
     let st = app.session.active().unwrap();
     assert_eq!((st.doc.name.as_str(), st.path.as_deref()), ("shot.jpg", Some("shot.jpg")));
     assert_eq!(st.saved_revision, st.revision);

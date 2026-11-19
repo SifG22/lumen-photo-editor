@@ -3165,3 +3165,27 @@ fn a_pass_through_clipping_base_keeps_its_adjustments_inside() {
     d.layers.push(clip);
     assert!(close4(px(&d, 1, 1), [1.0, 1.0, 1.0, 1.0]), "{:?}", px(&d, 1, 1));
 }
+
+// Concurrent callers share one memoized effect identity.
+#[test]
+fn concurrent_effect_identity_misses_compute_once() {
+    let mut doc = identity_doc(SampleType::U8);
+    // Make the existing pure identity hash long enough to expose overlapping misses.
+    doc.layers[1].effects.items = vec![Effect::DropShadow(shadow(4.0, 120.0)); 512];
+    let layer = &doc.layers[1];
+    let keys = LayerKeys::default();
+    let start = std::sync::Barrier::new(8);
+    std::thread::scope(|scope| {
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                scope.spawn(|| {
+                    start.wait();
+                    keys.identity(layer, Some(&doc))
+                })
+            })
+            .collect();
+        let ids: Vec<_> = handles.into_iter().map(|h| h.join().unwrap()).collect();
+        assert!(ids.iter().all(|id| *id == ids[0]));
+    });
+    assert_eq!(keys.built.load(std::sync::atomic::Ordering::Relaxed), 1, "concurrent cache misses must compute one memoized identity");
+}

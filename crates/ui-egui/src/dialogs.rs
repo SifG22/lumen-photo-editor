@@ -341,7 +341,7 @@ pub fn show(app: &mut PhotocraftApp, ctx: &egui::Context) {
                 DialogKind::Command => {}
                 DialogKind::LayerStyle => crate::layer_style::body(app, ui, &mut fields),
                 DialogKind::Error => {
-                    ui.label(fields.get("message").and_then(Value::as_str).unwrap_or("Error"));
+                    ui.label(crate::brand::rebrand_message(fields.get("message").and_then(Value::as_str).unwrap_or("Error")));
                 }
             }
             crate::field_tab::end(ui.ctx(), tab);
@@ -637,7 +637,7 @@ pub fn confirm(app: &mut PhotocraftApp, id: u64) -> Result<Value, String> {
             if result.is_ok() {
                 crate::filter_dialog::remember(app, &cmd, &d.fields);
                 // A step dialog of a playing action: the action continues after it.
-                crate::actions::resume(app, &d.fields);
+                crate::actions::resume(app, &d.fields)?;
             }
             result
         }

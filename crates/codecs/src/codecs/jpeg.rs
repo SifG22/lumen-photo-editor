@@ -258,6 +258,17 @@ pub(crate) fn encode(src: &Image, plan: Plan, opts: &EncodeOptions) -> Result<Ve
         jpeg_encoder::SamplingFactor::R_4_4_4
     };
     enc.set_sampling_factor(sampling);
+    // Clamped to Photoshop's range (3–5; 2 is the encoder's least): the encoder asserts outside
+    // 2..=64, and many scans read back wrong in our decoder.
+    if let Some(scans) = opts.jpeg_progressive_scans {
+        enc.set_progressive_scans(scans.clamp(2, 5));
+    }
+    // Optimised Huffman tables: always for progressive. A *baseline* 4:2:0 file with the encoder's
+    // optimised tables reads back garbled in our own decoder (libjpeg reads it), so Baseline
+    // Optimized keeps the standard tables there: a valid file everywhere, a few percent larger.
+    let subsampled = sampling == jpeg_encoder::SamplingFactor::R_4_2_0;
+    let progressive = opts.jpeg_progressive_scans.is_some();
+    enc.set_optimized_huffman_tables(progressive || (opts.jpeg_optimize && !subsampled));
     let e = |e: jpeg_encoder::EncodingError| CodecError::encode(F, e);
     if opts.embed_metadata {
         if let Some((x, y)) = img.meta.dpi
